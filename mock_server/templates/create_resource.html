@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+
+{% block header %}
+{% set active_page = "create_resource" %}
+{% end %}
+
+{% block body %}
+{% autoescape None %}
+<div class="span12">
+    <div class="page-header">
+        <h1>{% if edit %}Edit{% else %}Create{% end %} resource</h1>
+    </div>
+    <form class="form-horizontal" method="post" id="create-resource-form">
+      <fieldset>
+        {{xsrf_form_html()}}
+        <div class="control-group">
+            <label for="url_path">Url path</label>
+            <input type="text" name="url_path" id="url_path" value="{{url_path}}" required>
+        </div>
+
+        <div class="control-group">
+            <label for="method">Method</label>
+            <select name="method" id="method">
+                {% for supported_method in handler.SUPPORTED_METHODS %}
+                <option{% if supported_method == method %} selected="selected"{% end %}>{{supported_method}}</option>
+                {% end %}
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="status_code">Status code</label>
+            <input type="text" name="status_code" id="status_code" value="{{status_code}}" required>
+        </div>
+
+        <div class="control-group">
+            <label for="format">Format</label>
+            <select name="format" id="format">
+                {% for supported_format in SUPPORTED_FORMATS %}
+                <option{% if supported_format == format %} selected="selected"{% end %}>{{supported_format}}</option>
+                {% end %}
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Response body</label>
+            <div id="response-body-editor"></div>
+            <input type="hidden" name="response_body" id="response_body" />
+        </div>
+
+        <div class="control-group">
+            <label>Response headers</label>
+            <div id="response-headers-editor">{% if response_headers %}{{response_headers}}{% end %}</div>
+            <input type="hidden" name="response_headers" id="response_headers" />
+        </div>
+
+        <div class="control-group">
+          <button type="submit" class="btn">Save resource</button>
+        </div>
+      </fieldset>
+    </form>
+</div><!--/span-->
+{% end %}
+
+{% block javascripts %}
+<script src="/__static/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/js/create-resource.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+{% if response_body %}
+responseBodyEditor.setValue({{json_encode(response_body)}});
+{% end %}
+</script>
+{% end %}

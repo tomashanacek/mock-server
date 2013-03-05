@@ -1,0 +1,39 @@
+{% extends "layout.html" %}
+
+{% block header %}
+{% set active_page = "resources_logs" %}
+{% end %}
+
+{% block body %}
+<div class="span12">
+    <div class="page-header">
+        <h1>Access Log</h1>
+    </div>
+
+    <div>
+        {% for line in reversed(data) %}
+        <div class="navbar">
+          <div class="navbar-inner">
+            <a class="brand" href="#">{{datetime.datetime.strptime(line["time"], '%Y-%m-%dT%H:%M:%S.%f').strftime("%Y-%m-%d %H:%M:%S")}} {{line["method"]}} {{line["url_path"]}} - {{line["status"]}}</a>
+          </div>
+          <pre class="prettyprint">{
+            uri: "{{line["uri"]}}",
+            body: "{{line["body"]}}",
+            cookies: { {% for key, value in line["cookies"].iteritems() %}{{key}}: "{{value}}", {% end %} },
+            headers: { {% for key, value in line["headers"].iteritems() %}{{key}}: "{{value}}", {% end %} },
+            request_time: {{line["request_time"]}}ms,
+            arguments: { {% for key, value in line["arguments"].iteritems() %}{{key}}: "{{value}}", {% end %} },
+            remote_ip: {{line["remote_ip"]}}
+          }</pre>
+        </div>
+        {% end %}
+    </div>
+</div>
+{% end %}
+
+{% block javascripts %}
+<script type="text/javascript">
+// make code pretty
+window.prettyPrint && prettyPrint()
+</script>
+{% end %}
