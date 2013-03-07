@@ -106,6 +106,7 @@ class MainHandler(BaseHandler):
         format = self._get_format(format)
         method = self.request.method
         status_code = self.get_argument("__statusCode", 200)
+        url_path = self._parse_url_path(url_path)
 
         content_path = os.path.join(
             options.dir, url_path, "%s_%s.%s" % (method, status_code, format))

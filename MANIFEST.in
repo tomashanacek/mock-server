@@ -1,5 +1,14 @@
-recursive-include mock_server *
 global-exclude *.py[co]
+global-exclude .DS_Store
 include LICENSE.md
 include README.md
 include requirements.txt
+recursive-include mock_server *
+recursive-include mock_server/example *
+recursive-include mock_server/static *
+recursive-include mock_server/static/css *
+recursive-include mock_server/static/js *
+recursive-include mock_server/static/js/ace *
+recursive-include mock_server/static/img *
+recursive-include mock_server/templates *
+recursive-include mock_server/tests *

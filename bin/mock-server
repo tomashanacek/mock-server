@@ -20,6 +20,8 @@ def command_line_options():
         print "!! Specify API directory (--dir=/directory/for/api)\n"
         tornado.options.print_help()
         return False
+    elif not options.dir.endswith(os.path.sep):
+        options.dir = "%s%s" % (options.dir, os.path.sep)
 
     if not os.path.exists(options.dir):
         print "Error: Directory: '%s' doesn't exists" % options.dir
