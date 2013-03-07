@@ -2,6 +2,9 @@ body {
   padding-top: 60px;
   padding-bottom: 40px;
 }
+.mb20 {
+  margin-bottom: 20px;
+}
 .sidebar-nav {
   padding: 9px 0;
 }
@@ -73,11 +76,21 @@ body {
 }
 
 /* editors */
-#response-body-editor {
+#response-body-editor, #method-response-editor {
   height: 300px;
   width: 600px;
 }
+
 #response-headers-editor {
   height: 200px;
   width: 600px;
+}
+
+#define-in-json {
+  cursor: help;
+  border-bottom: 1px dotted #999999;
+}
+
+.list-resources {
+  margin-bottom: 150px;
 }

@@ -5,14 +5,23 @@
 {% end %}
 
 {% block body %}
-{% autoescape None %}
 <div class="span12">
     <div class="page-header">
         <h1>{% if edit %}Edit{% else %}Create{% end %} resource</h1>
     </div>
-    <form class="form-horizontal" method="post" id="create-resource-form">
+
+    <div class="mb20">
+        <label class="radio inline">
+          <input type="radio" class="protocol" name="protocol" value="rest"{% if protocol == "rest" %} checked{% end %}> REST
+        </label>
+        <label class="radio inline input-small">
+          <input type="radio" class="protocol" name="protocol" value="xml-rpc"{% if protocol == "xml-rpc" %} checked{% end %}> XML-RPC
+        </label>
+    </div>
+
+    <form class="form-horizontal{% if protocol != 'rest' %} hidden{% end %}" method="post" id="rest-form">
       <fieldset>
-        {{xsrf_form_html()}}
+        {% raw xsrf_form_html() %}
         <div class="control-group">
             <label for="url_path">Url path</label>
             <input type="text" name="url_path" id="url_path" value="{{url_path}}" required>
@@ -58,6 +67,27 @@
         </div>
       </fieldset>
     </form>
+
+    <form class="form-horizontal{% if protocol != 'xml-rpc' %} hidden{% end %}" method="post" action="/__manage/create/xml-rpc" id="xml-rpc-form">
+        <fieldset>
+            {% raw xsrf_form_html() %}
+
+            <div class="control-group">
+                <label for="method_name">Method name</label>
+                <input type="text" name="method_name" id="method_name" value="{{method_name}}" required>
+            </div>
+
+            <div class="control-group">
+                <label>Method response <span class="text-warning" id="define-in-json" data-content='<b>Example:</b><br>{<br>"name": "Tomas",<br>"surname": "Hanacek"<br>}'>(Define in JSON)</span></label>
+                <div id="method-response-editor"></div>
+                <input type="hidden" name="method_response" id="method_response" />
+            </div>
+
+            <div class="control-group">
+              <button type="submit" class="btn">Save method</button>
+            </div>
+        </fieldset>
+    </form>
 </div><!--/span-->
 {% end %}
 
@@ -66,7 +96,10 @@
 <script src="/__static/js/create-resource.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript">
 {% if response_body %}
-responseBodyEditor.setValue({{json_encode(response_body)}});
+responseBodyEditor.setValue({% raw json_encode(response_body) %});
+{% end %}
+{% if method_response %}
+methodResponseEditor.setValue({% raw json_encode(method_response) %});
 {% end %}
 </script>
 {% end %}

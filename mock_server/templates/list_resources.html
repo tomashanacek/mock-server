@@ -6,40 +6,58 @@
 
 {% block body %}
 
+{% if not paths and not xmlrpc_methods %}
+<div class="page-header">
+    <h1>List resources</h1>
+</div>
+{% end %}
+
 <div class="span3 bs-docs-sidebar">
     <ul class="nav nav-list bs-docs-sidenav affix">
       {% for path in paths %}
       <li class=""><a href="#{{path["url_path"]}}"><i class="icon-chevron-right"></i> {{path["url_path"]}}</a></li>
       {% end %}
+      {% for method_name, method_response in xmlrpc_methods %}
+      <li class=""><a href="#xmlrpc-{{method_name}}"><i class="icon-chevron-right"></i> XML-RPC/{{method_name}}</a></li>
+      {% end %}
     </ul>
 </div>
 
-<div class="span9">
+<div class="span9 list-resources">
+    {% if paths or xmlrpc_methods %}
     <div class="page-header">
         <h1>List resources</h1>
     </div>
+    {% end %}
 
-    {% for path in paths %}{% for method_status, formats in path["files"].iteritems() %}
+    {% if flash_message %}
+    <div class="alert alert-success">
+      <button type="button" class="close" data-dismiss="alert">×</button>
+      {{flash_message}}
+    </div>
+    {% end %}
+
+    {% for path in paths %}{% for (method, status), content in path["files"].iteritems() %}
     <section id="{{path["url_path"]}}">
     <div class="navbar">
       <div class="navbar-inner">
-        <a class="brand" href="#">{{method_status[0]}} /{{path["url_path"]}} - {{method_status[1]}}</a>
+        <a class="brand" href="#">{{method}} /{{path["url_path"]}} - {{status}}</a>
         <ul class="nav">
-          {% for i, format in enumerate(formats) %}
-          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{method_status[0]}}{{path["id"]}}{{method_status[1]}}" href="#{{method_status[0]}}{{path["id"]}}{{method_status[1]}}{{i}}" data-toggle="tab">{{format[0]}}</a></li>
+          {% for i, (format, data) in enumerate(content) %}
+          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{method}}{{path["id"]}}{{status}}" href="#{{method}}{{path["id"]}}{{status}}{{i}}" data-toggle="tab">{{format}}</a></li>
           {% end %}
         </ul>
         <ul class="nav pull-right">
             <li class="divider-vertical"></li>
-            <li><a data-format="{{formats[0][0]}}" id="trigger-{{method_status[0]}}{{path["id"]}}{{method_status[1]}}-edit" class="edit-button" href="/__manage/create?url_path={{path["url_path"]}}&method={{method_status[0]}}&status_code={{method_status[1]}}&format=">Edit</a></li>
+            <li><a data-format="{{content[0][0]}}" id="trigger-{{method}}{{path["id"]}}{{status}}-edit" class="edit-button" href="/__manage/create?url_path={{path["url_path"]}}&method={{method}}&status_code={{status}}&format=">Edit</a></li>
         </ul>
       </div>
       <div class="tab-content">
-          {% for i, format in enumerate(formats) %}
-          <div id="{{method_status[0]}}{{path["id"]}}{{method_status[1]}}{{i}}" class="tab-pane{% if i == 0 %} active{% end %}">
-            <pre class="prettyprint linenums">{{format[1]}}</pre>
+          {% for i, (format, data) in enumerate(content) %}
+          <div id="{{method}}{{path["id"]}}{{status}}{{i}}" class="tab-pane{% if i == 0 %} active{% end %}">
+            <pre class="prettyprint linenums">{{data}}</pre>
             <pre class="prettyprint">
-            curl -v -X {{method_status[0]}} http://{{address}}:{{port}}/{{path["url_path"]}}.{{format[0]}}{% if method_status[1] != "200" %}?__statusCode={{method_status[1]}}{% end %}
+            curl -v -X {{method}} http://{{address}}:{{port}}/{{path["url_path"]}}.{{format}}{% if status != "200" %}?__statusCode={{status}}{% end %}
             </pre>
           </div>
           {% end %}
@@ -48,7 +66,31 @@
     </section>
 
     {% end %}{% end %}
+
+    {% for method_name, method_response in xmlrpc_methods %}
+    <section id="xmlrpc-{{method_name}}">
+      <div class="navbar">
+        <div class="navbar-inner">
+          <a class="brand" href="#">XML-RPC/{{method_name}}</a>
+          <ul class="nav pull-right">
+              <li class="divider-vertical"></li>
+              <li><a href="/__manage/create?protocol=xml-rpc&method_name={{method_name}}">Edit</a></li>
+          </ul>
+        </div>
+        <div class="tab-content">
+            {% set method_call = "<?xml version='1.0'?><methodCall><methodName>"+method_name+"</methodName><params></params></methodCall>" %}
+            <div>
+              <pre class="prettyprint linenums">{{method_response}}</pre>
+              <pre class="prettyprint">
+              curl -v -X POST http://{{address}}:{{port}}/RPC2 -d "{{method_call}}" --header "Content-Type:text/xml"
+              </pre>
+            </div>
+        </div>
+      </div>
+    </section>
+    {% end %}
 </div>
+
 {% end %}
 
 {% block javascripts %}

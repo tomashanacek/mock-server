@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# AUTHOR
-# Tomas Hanacek <tomas.hanacek1@gmail.com>
 
 JSON = "json"
 XML = "xml"
@@ -22,6 +19,7 @@ SUPPORTED_FORMATS = {
     RSS: ("application/rss+xml", ),
     ATOM: ("application/atom+xml", )
 }
+
 
 def _supported_mimes(SUPPORTED_FORMATS):
     supported_mimes = {}

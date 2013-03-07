@@ -1,0 +1,5 @@
+recursive-include mock_server *
+global-exclude *.py[co]
+include LICENSE.md
+include README.md
+include requirements.txt
