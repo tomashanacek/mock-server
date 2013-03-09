@@ -3,6 +3,8 @@ Simple mock server for REST and XML-RPC API
 
 It can mock GET, POST, PUT, PATCH, DELETE and some more rarely used HTTP methods. 
 
+Build status at [Travis CI](http://travis-ci.org/): [![Build Status](https://travis-ci.org/tomashanacek/mock-server.png?branch=master)](https://travis-ci.org/tomashanacek/mock-server)
+
 ## DEMO
 
 http://psyduck.cz:9999/__manage
