@@ -10,14 +10,13 @@ from email.parser import Parser
 
 import tornado.web
 from tornado.escape import json_encode, json_decode, utf8
-from tornado.options import options
 
 from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
 from tornado_flash_message_mixin import FlashMessageMixin
 
 
 class Application(tornado.web.Application):
-    def __init__(self):
+    def __init__(self, port, address, api_dir, debug):
         supported_formats = "|".join(
             map(lambda x: ".%s" % x, SUPPORTED_FORMATS.keys()))
         handlers = [
@@ -30,7 +29,10 @@ class Application(tornado.web.Application):
             (r"/(.*)", MainHandler),
         ]
         settings = dict(
-            debug=options.debug,
+            debug=debug,
+            port=port,
+            address=address,
+            dir=api_dir,
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             static_url_prefix="/__static/",
@@ -75,7 +77,7 @@ class BaseHandler(tornado.web.RequestHandler):
     @property
     def log_request_name(self):
         return os.path.join(
-            options.dir, "access-%s.log" %
+            self.settings["dir"], "access-%s.log" %
             datetime.datetime.now().strftime("%Y-%m-%d"))
 
 
@@ -109,7 +111,8 @@ class MainHandler(BaseHandler):
         url_path = self._parse_url_path(url_path)
 
         content_path = os.path.join(
-            options.dir, url_path, "%s_%s.%s" % (method, status_code, format))
+            self.settings["dir"], url_path,
+            "%s_%s.%s" % (method, status_code, format))
 
         content = self.read_file(content_path)
 
@@ -126,7 +129,7 @@ class MainHandler(BaseHandler):
         self.set_header("Access-Control-Allow-Origin", "*")
 
         headers_path = os.path.join(
-            options.dir, url_path,
+            self.settings["dir"], url_path,
             "%s_H_%s.%s" % (method, status_code, format))
         self._set_headers(self._get_headers(headers_path))
 
@@ -144,7 +147,8 @@ class MainHandler(BaseHandler):
     def _get_format(self, format):
         format = format[1:] if format[0] == "." else format
 
-        if self.request.headers["Accept"] in SUPPORTED_MIMES:
+        if "Accept" in self.request.headers and\
+                self.request.headers["Accept"] in SUPPORTED_MIMES:
             format = SUPPORTED_MIMES[self.request.headers["Accept"]]
 
         return format
@@ -194,7 +198,7 @@ class XMLRPCHandler(BaseHandler):
                     methodresponse=True))
 
         # list available methods
-        methods_dir = os.path.join(options.dir, XMLRPCHandler.PATH)
+        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
         available_methods = os.listdir(methods_dir)
         available_methods.append(XMLRPCHandler.LIST_METHODS)
 
@@ -236,12 +240,14 @@ class ResourcesLogsHandler(BaseHandler):
 class ListResourcesHandler(BaseHandler, FlashMessageMixin):
     def get(self):
         paths = [self._complete_resource(item)
-                 for item in os.walk(options.dir) if self._check_folder(item)]
+                 for item in os.walk(self.settings["dir"])
+                 if self._check_folder(item)]
 
         xmlrpc_methods = self._list_xmlrpc_methods()
 
         self.render("list_resources.html", paths=paths,
-                    port=options.port, address=options.address,
+                    port=self.settings["port"],
+                    address=self.settings["address"],
                     xmlrpc_methods=xmlrpc_methods,
                     flash_message=self.get_flash_message("success"))
 
@@ -251,7 +257,7 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
     def _list_xmlrpc_methods(self):
         xmlrpc_methods = []
-        methods_dir = os.path.join(options.dir, XMLRPCHandler.PATH)
+        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
 
         if not os.path.exists(methods_dir):
             return xmlrpc_methods
@@ -287,10 +293,10 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
             else:
                 files[(method, status_code)] = \
                      [(format, self._load_file(
-                        "%s/%s" % (item[0], current_file)))]
+                      "%s/%s" % (item[0], current_file)))]
 
         resource = {
-            "url_path": item[0][len(options.dir):],
+            "url_path": item[0][len(self.settings["dir"]):],
             "files": files
         }
 
@@ -331,15 +337,16 @@ class CreateResourceHandler(BaseHandler, FlashMessageMixin):
 
         if protocol == "rest":
             response_body = self.read_file(
-                os.path.join(options.dir, url_path,
+                os.path.join(self.settings["dir"], url_path,
                              "%s_%s.%s" % (method, status_code, format)))
             response_headers = self.read_file(
-                os.path.join(options.dir, url_path,
+                os.path.join(self.settings["dir"], url_path,
                              "%s_H_%s.%s" % (method, status_code, format)))
             method_response = None
         elif protocol == "xml-rpc":
             method_response = self.read_file(
-                os.path.join(options.dir, XMLRPCHandler.PATH, method_name))
+                os.path.join(self.settings["dir"], XMLRPCHandler.PATH,
+                             method_name))
             response_body = None
             response_headers = None
 
@@ -365,7 +372,7 @@ class CreateResourceHandler(BaseHandler, FlashMessageMixin):
         response_body = self.get_argument("response_body")
         response_headers = self.get_argument("response_headers", "")
 
-        resource_dir = os.path.join(options.dir, url_path)
+        resource_dir = os.path.join(self.settings["dir"], url_path)
         if not os.path.exists(resource_dir):
             os.makedirs(resource_dir)
 
@@ -396,7 +403,7 @@ class CreateXMLRPCMethodHandler(BaseHandler, FlashMessageMixin):
         method_name = self.get_argument("method_name")
         method_response = self.get_argument("method_response")
 
-        methods_dir = os.path.join(options.dir, XMLRPCHandler.PATH)
+        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
         if not os.path.exists(methods_dir):
             os.makedirs(methods_dir)
 

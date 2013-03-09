@@ -26,5 +26,6 @@ setup(
     packages=["mock_server"],
     scripts=["bin/mock-server"],
     install_requires=install_requires,
-    include_package_data=True
+    include_package_data=True,
+    test_suite="mock_server.tests.all"
 )

@@ -45,7 +45,8 @@ def main():
         print "\nTry run with --debug"
         return
 
-    app = Application()
+    app = Application(options.port, options.address,
+                      options.dir, options.debug)
     app.listen(options.port, options.address)
     tornado.ioloop.IOLoop.instance().start()
 

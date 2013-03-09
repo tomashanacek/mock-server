@@ -3,6 +3,7 @@ global-exclude .DS_Store
 include LICENSE.md
 include README.md
 include requirements.txt
+include runtests.py
 recursive-include mock_server *
 recursive-include mock_server/example *
 recursive-include mock_server/static *
@@ -12,3 +13,7 @@ recursive-include mock_server/static/js/ace *
 recursive-include mock_server/static/img *
 recursive-include mock_server/templates *
 recursive-include mock_server/tests *
+recursive-include mock_server/tests/api *
+recursive-include mock_server/tests/api/user *
+recursive-include mock_server/tests/api/user/tom *
+recursive-include mock_server/tests/api/RPC2 *
