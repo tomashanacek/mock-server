@@ -16,7 +16,7 @@ with open(os.path.join(root_dir, "requirements.txt")) as f:
 
 setup(
     name="mock-server",
-    version="0.1.0",
+    version="0.2.0",
     description=("Simple mock server for REST API"),
     long_description=read("README.md"),
     author="Tomas Hanacek",
