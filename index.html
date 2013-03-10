@@ -1,76 +1,136 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Mock-server by tomashanacek</title>
+    <title>Sticky footer &middot; Twitter Bootstrap</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!-- CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
-    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+      <script src="js/html5shiv.js"></script>
     <![endif]-->
+
+    <!-- Fav and touch icons -->
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="ico/apple-touch-icon-57-precomposed.png">
+    <link rel="shortcut icon" href="ico/favicon.png">
   </head>
+
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Mock-server</h1>
-        <p>Simple mock server for REST API</p>
 
-        <p class="view"><a href="https://github.com/tomashanacek/mock-server">View the Project on GitHub <small>tomashanacek/mock-server</small></a></p>
+    <a href="https://github.com/tomashanacek/mock-server"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_red_aa0000.png" alt="Fork me on GitHub"></a>
 
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
 
-        <ul>
-          <li><a href="https://github.com/tomashanacek/mock-server/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/tomashanacek/mock-server/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/tomashanacek/mock-server">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <h3>Welcome to GitHub Pages.</h3>
+      <!-- Begin page content -->
+      <div class="container">
+        <div class="page-header">
+          <h1>Mock Server</h1>
+          <span>Simple mock server for REST API</span>
+        </div>
 
-<p>This automatic page generator is the easiest way to create beautiful pages for all of your projects. Author your page content here using GitHub Flavored Markdown, select a template crafted by a designer, and publish. After your page is generated, you can check out the new branch:</p>
+        <p class="lead">The simplest way how you can define mocks for your REST API.</p>
 
-<pre><code>$ cd your_repo_root/repo_name
-$ git fetch origin
-$ git checkout gh-pages
-</code></pre>
+        <iframe width="900" height="550" src="http://www.youtube.com/embed/EAwSvbfFpIg?vq=hd720" frameborder="0" allowfullscreen></iframe>
 
-<p>If you're using the GitHub for Mac, simply sync your repository and you'll see the new branch.</p>
+        <!-- CONTENT -->
 
-<h3>Designer Templates</h3>
+        <h2>DEMO</h2>
 
-<p>We've crafted some handsome templates for you to use. Go ahead and continue to layouts to browse through them. You can easily go back to edit your page before publishing. After publishing your page, you can revisit the page generator and switch to another theme. Your Page content will be preserved if it remained markdown format.</p>
+        <p><a href="http://psyduck.cz:9999/__manage" target="_blank">http://psyduck.cz:9999/__manage</a></p>
 
-<h3>Rather Drive Stick?</h3>
+        <h2>Installation</h2>
 
-<p>If you prefer to not use the automatic generator, push a branch named <code>gh-pages</code> to your repository to create a page manually. In addition to supporting regular HTML content, GitHub Pages support Jekyll, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+        <p>Install with pip:</p>
 
-<h3>Authors and Contributors</h3>
+        <pre><code>$ pip install mock-server</code></pre>
 
-<p>You can <a href="https://github.com/blog/821" class="user-mention">@mention</a> a GitHub username to generate a link to their profile. The resulting <code>&lt;a&gt;</code> element will link to the contributor's GitHub Profile. For example: In 2007, Chris Wanstrath (<a href="https://github.com/defunkt" class="user-mention">@defunkt</a>), PJ Hyett (<a href="https://github.com/pjhyett" class="user-mention">@pjhyett</a>), and Tom Preston-Werner (<a href="https://github.com/mojombo" class="user-mention">@mojombo</a>) founded GitHub.</p>
+        <p>Or install with easy_install</p>
 
-<h3>Support or Contact</h3>
+        <pre><code>$ easy_install mock-server</code></pre>
 
-<p>Having trouble with Pages? Check out the documentation at <a href="http://help.github.com/pages">http://help.github.com/pages</a> or contact <a href="mailto:support@github.com">support@github.com</a> and we’ll help you sort it out.</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/tomashanacek">tomashanacek</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
+        <p>And after run</p>
+
+        <pre><code>$ mock-server --dir=/path/to/api</code></pre>
+
+        <p>It will be listening on port 8888 and wait for your HTTP requests.</p>
+
+        <h2>Overview</h2>
+
+        <p>Mocking service is as simple as creating directory and few files within it just like that:</p>
+
+        <pre><code>response content format: %METHOD%_%STATUS%.%FORMAT%
+response headers format: %METHOD%_H_%STATUS%.%FORMAT%
+
+root_dir/
+    GET_200.json         # response content for GET /
+    GET_H_200.json       # headers for GET /
+    user/
+        DELETE_404.xml   # response content for DELETE /user.xml?__statusCode=404
+        POST_200.json    # response content for POST /user
+        POST_H_200.json  # headers for POST /user</code></pre>
+
+        <p>Or you can use web interface</p>
+
+        <pre><code>http://localhost:8888/__manage/create</code></pre>
+
+        <p>Mocked GET /user/tom</p>
+
+        <pre><code>$ curl -v -X GET http://psyduck:9999/user/tom
+
+&gt; GET /user/tom HTTP/1.1
+&gt; Host: psyduck:9999
+&gt; Accept: */*
+&gt; 
+&lt; HTTP/1.1 200 OK
+&lt; Access-Control-Allow-Origin: *
+&lt; Content-Type: application/json; charset=utf-8
+&lt; Content-Length: 64
+&lt; Server: TornadoServer/2.4.1
+&lt; 
+{
+    "name": "Tom",
+    "surname": "Smith",
+    "age": 22
+}</code></pre>
+
+        <h2>Bug report</h2>
+
+        <p>If you have any trouble, report bug at <a href="https://github.com/tomashanacek/mock-server/issues">GitHub Issue</a></p>
+      </div>
+
+      <div id="push"></div>
     </div>
-    <script src="javascripts/scale.fix.js"></script>
-              <script type="text/javascript">
-            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-          </script>
-          <script type="text/javascript">
-            try {
-              var pageTracker = _gat._getTracker("UA-39145790-1");
-            pageTracker._trackPageview();
-            } catch(err) {}
-          </script>
+
+    <div id="footer">
+      <div class="container">
+        <p class="muted credit"><a href="https://github.com/tomashanacek/mock-server">Mock Server</a> is released under the <a href="https://github.com/tomashanacek/mock-server/blob/master/LICENSE.md">Apache Licence, Version 2.0.</a> Maintained by <a href="https://github.com/tomashanacek">Tomas Hanacek</a>.</p>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-39145790-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
 
   </body>
 </html>
