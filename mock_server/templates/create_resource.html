@@ -7,45 +7,51 @@
 {% block body %}
 <div class="span12">
     <div class="page-header">
-        <h1>{% if edit %}Edit{% else %}Create{% end %} resource</h1>
+        <h1>{% if method_file.edit %}Edit{% else %}Create{% end %} resource method</h1>
     </div>
 
     <div class="mb20">
         <label class="radio inline">
           <input type="radio" class="protocol" name="protocol" value="rest"{% if protocol == "rest" %} checked{% end %}> REST
         </label>
-        <label class="radio inline input-small">
-          <input type="radio" class="protocol" name="protocol" value="xml-rpc"{% if protocol == "xml-rpc" %} checked{% end %}> XML-RPC
+        <label class="radio inline input-medium">
+          <input type="radio" class="protocol" name="protocol" value="rpc"{% if protocol == "rpc" %} checked{% end %}> RPC (XML, <span{% if not jsonrpc %} id="jsonrpc"{% end %} data-content='The JSON-RPC handler requires jsonrpclib library, which you can get at <a href="http://github.com/joshmarshall/jsonrpclib" target="_blank">http://github.com/joshmarshall/jsonrpclib</a>'>JSON</span>)</label>
         </label>
     </div>
 
     <form class="form-horizontal{% if protocol != 'rest' %} hidden{% end %}" method="post" id="rest-form">
       <fieldset>
-        {% raw xsrf_form_html() %}
+        {% module xsrf_form_html() %}
+
+        <div class="control-group">
+            <label for="category">Category</label>
+            <input type="text" name="category" id="category" autocomplete="off" value="{{category}}">
+        </div>
+
         <div class="control-group">
             <label for="url_path">Url path</label>
-            <input type="text" name="url_path" id="url_path" value="{{url_path}}" required>
+            <input type="text" name="url_path" id="url_path" value="{% if protocol == 'rest' %}{{method_file.url_path}}{% end %}" required>
         </div>
 
         <div class="control-group">
             <label for="method">Method</label>
             <select name="method" id="method">
                 {% for supported_method in handler.SUPPORTED_METHODS %}
-                <option{% if supported_method == method %} selected="selected"{% end %}>{{supported_method}}</option>
+                <option{% if protocol == 'rest' and supported_method == method_file.method %} selected="selected"{% end %}>{{supported_method}}</option>
                 {% end %}
             </select>
         </div>
 
         <div class="control-group">
             <label for="status_code">Status code</label>
-            <input type="text" name="status_code" id="status_code" value="{{status_code}}" required>
+            <input type="text" name="status_code" id="status_code" value="{% if protocol == 'rest' %}{{method_file.status_code}}{% end %}" required>
         </div>
 
         <div class="control-group">
-            <label for="format">Format</label>
+            <label for="format">Response format</label>
             <select name="format" id="format">
                 {% for supported_format in SUPPORTED_FORMATS %}
-                <option{% if supported_format == format %} selected="selected"{% end %}>{{supported_format}}</option>
+                <option{% if protocol == 'rest' and supported_format == method_file.format %} selected="selected"{% end %}>{{supported_format}}</option>
                 {% end %}
             </select>
         </div>
@@ -58,9 +64,16 @@
 
         <div class="control-group">
             <label>Response headers</label>
-            <div id="response-headers-editor">{% if response_headers %}{{response_headers}}{% end %}</div>
+            <div id="response-headers-editor">{% if protocol == "rest" and method_file.response_headers %}{{method_file.response_headers}}{% end %}</div>
             <input type="hidden" name="response_headers" id="response_headers" />
         </div>
+
+        <div class="wmd-panel">
+            <label>Resource description</label>
+            <div id="wmd-button-bar"></div>
+            <textarea class="wmd-input" id="wmd-input" name="resource_description">{% if protocol == 'rest' and method_file.description %}{{method_file.description}}{% end %}</textarea>
+        </div>
+        <div id="wmd-preview" class="wmd-panel wmd-preview"></div>
 
         <div class="control-group">
           <button type="submit" class="btn">Save resource</button>
@@ -68,13 +81,18 @@
       </fieldset>
     </form>
 
-    <form class="form-horizontal{% if protocol != 'xml-rpc' %} hidden{% end %}" method="post" action="/__manage/create/xml-rpc" id="xml-rpc-form">
+    <form class="form-horizontal{% if protocol != 'rpc' %} hidden{% end %}" method="post" action="/__manage/create/rpc" id="rpc-form">
         <fieldset>
-            {% raw xsrf_form_html() %}
+            {% module xsrf_form_html() %}
+
+            <div class="control-group">
+                <label for="rpc_category">Category</label>
+                <input type="text" name="category" id="rpc_category" autocomplete="off" value="{{category}}">
+            </div>
 
             <div class="control-group">
                 <label for="method_name">Method name</label>
-                <input type="text" name="method_name" id="method_name" value="{{method_name}}" required>
+                <input type="text" name="method_name" id="method_name" value="{% if protocol == "rpc" %}{{method_file.name}}{% end %}" required>
             </div>
 
             <div class="control-group">
@@ -82,6 +100,13 @@
                 <div id="method-response-editor"></div>
                 <input type="hidden" name="method_response" id="method_response" />
             </div>
+
+            <div class="wmd-panel">
+                <label>Description</label>
+                <div id="wmd-button-bar-rpc"></div>
+                <textarea class="wmd-input" id="wmd-input-rpc" name="description">{% if protocol == 'rpc' and method_file.description %}{{method_file.description}}{% end %}</textarea>
+            </div>
+            <div id="wmd-preview-rpc" class="wmd-panel wmd-preview"></div>
 
             <div class="control-group">
               <button type="submit" class="btn">Save method</button>
@@ -92,14 +117,29 @@
 {% end %}
 
 {% block javascripts %}
-<script src="/__static/js/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/vendor/pagedown/js/Markdown.Converter.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/vendor/pagedown/js/Markdown.Sanitizer.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/vendor/pagedown/js/Markdown.Editor.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/vendor/ace/js/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/__static/js/create-resource.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript">
-{% if response_body %}
-responseBodyEditor.setValue({% raw json_encode(response_body) %});
+{% if protocol == "rest" and method_file.response_body %}
+responseBodyEditor.setValue({% raw json_encode(method_file.response_body) %});
 {% end %}
-{% if method_response %}
-methodResponseEditor.setValue({% raw json_encode(method_response) %});
+{% if protocol == "rpc" and method_file.method_response %}
+methodResponseEditor.setValue({% raw json_encode(method_file.method_response) %});
 {% end %}
+
+var converter1 = new Markdown.Converter();
+var editor1 = new Markdown.Editor(converter1);
+editor1.run();
+
+var converter2 = new Markdown.Converter();
+var editor2 = new Markdown.Editor(converter2, "-rpc");
+editor2.run();
+
+$("#category").typeahead({source: {%raw json_encode(list(handler.application.data.categories))%}})
+
+$("#rpc_category").typeahead({source: {%raw json_encode(list(handler.application.data.categories))%}})
 </script>
 {% end %}

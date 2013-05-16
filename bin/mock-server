@@ -11,6 +11,8 @@ define("address", default="localhost", help="run on the given address")
 define("port", default=8888, help="run on the given port", type=int)
 define("dir", help="dir with api definitions")
 define("debug", help="", default=False, type=bool)
+define("application_data", help="Application data file",
+       default="application.json")
 
 
 def command_line_options():
@@ -41,12 +43,13 @@ def main():
     try:
         from mock_server.server import Application
     except ImportError, e:
-        print e
-        print "\nTry run with --debug"
+        if options.debug:
+            raise
+        print "%s\nTry run with --debug" % str(e)
         return
 
     app = Application(options.port, options.address,
-                      options.dir, options.debug)
+                      options.dir, options.debug, options.application_data)
     app.listen(options.port, options.address)
     tornado.ioloop.IOLoop.instance().start()
 

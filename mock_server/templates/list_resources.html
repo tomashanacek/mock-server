@@ -6,93 +6,174 @@
 
 {% block body %}
 
-{% if not paths and not xmlrpc_methods %}
-<div class="page-header">
-    <h1>List resources</h1>
+{% set MAX_NUMBER_OF_METHODS = 9 %}
+
+{% if some_method %}
+<div class="span3 bs-docs-sidebar">
+    <ul class="nav nav-list bs-docs-sidenav" id="sidenav">
+      {% for category, paths in categories.iteritems() %}{% if paths %}
+        <li{% if number_of_methods < MAX_NUMBER_OF_METHODS %} class="category"{% end %}><a href="#{{category}}"><i class="icon-chevron-right"></i> {% if category == "__default" %}Not in category{% else %}{{category}}{% end %}</a></li>
+        {% if number_of_methods < MAX_NUMBER_OF_METHODS %}
+        {% for type, path in paths %}
+          {% if type == "rest" %}
+          <li class=""><a href="#{{path.path}}"><i class="icon-chevron-right"></i> {{path.path}}</a></li>
+          {% else %}
+          <li class=""><a href="#xmlrpc-{{path["name"]}}"><i class="icon-chevron-right"></i> RPC/{{path["name"]}}</a></li>
+          {% end %}
+        {% end %}
+        {% end %}
+      {% end %}{% end %}
+    </ul>
 </div>
 {% end %}
 
-<div class="span3 bs-docs-sidebar">
-    <ul class="nav nav-list bs-docs-sidenav affix">
-      {% for path in paths %}
-      <li class=""><a href="#{{path["url_path"]}}"><i class="icon-chevron-right"></i> {{path["url_path"]}}</a></li>
-      {% end %}
-      {% for method_name, method_response in xmlrpc_methods %}
-      <li class=""><a href="#xmlrpc-{{method_name}}"><i class="icon-chevron-right"></i> XML-RPC/{{method_name}}</a></li>
-      {% end %}
-    </ul>
-</div>
-
 <div class="span9 list-resources">
-    {% if paths or xmlrpc_methods %}
     <div class="page-header">
         <h1>List resources</h1>
     </div>
-    {% end %}
 
-    {% if flash_message %}
-    <div class="alert alert-success">
+    {% if flash_messages %}{% for type, message in flash_messages %}
+    <div class="alert alert-{{type}}">
       <button type="button" class="close" data-dismiss="alert">×</button>
-      {{flash_message}}
+      {{message}}
     </div>
-    {% end %}
+    {% end %}{% end %}
 
-    {% for path in paths %}{% for (method, status), content in path["files"].iteritems() %}
-    <section id="{{path["url_path"]}}">
+    {% if some_method %}
+    <form class="form-inline" method="post" action="/__manage/upstream-server">
+      <fieldset>
+        <legend>Upstream server</legend>
+        {% module xsrf_form_html() %}
+        <input type="url" class="input-big" placeholder="Upstream server" name="upstream_server" id="upstream_server" value="{{application_data.upstream_server}}">
+        <button type="submit" class="btn">Save</button>
+      </fieldset>
+    </form>
+
+    {% for category, paths in categories.iteritems() %}{% if paths %}
+    <h2 id="{{category}}">{% if category == "__default" %}Not in category{% else %}{{category}}{% end %}</h2>
+    {% for type, path in paths %}
+    {% if type == "rest" %}
+    {% for resource in path.resources.itervalues() %}
+    <section id="{{resource.url_path}}">
     <div class="navbar">
       <div class="navbar-inner">
-        <a class="brand" href="#">{{method}} /{{path["url_path"]}} - {{status}}</a>
+        <a class="brand" href="#">{{resource.method}} /{{resource.url_path}} - {{resource.status_code}}</a>
         <ul class="nav">
-          {% for i, (format, data) in enumerate(content) %}
-          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{method}}{{path["id"]}}{{status}}" href="#{{method}}{{path["id"]}}{{status}}{{i}}" data-toggle="tab">{{format}}</a></li>
+          {% for i, file in enumerate(resource.files) %}
+          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{resource.method}}{{path.id}}{{resource.status_code}}" href="#{{resource.method}}{{path.id}}{{resource.status_code}}{{i}}" data-toggle="tab">{{file.format}}</a></li>
           {% end %}
         </ul>
         <ul class="nav pull-right">
+            {% if application_data.upstream_server %}
+            <li>
+                <form class="form-inline" method="post" action="/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}">
+                  {% module xsrf_form_html() %}
+                  <label class="checkbox">
+                    <input type="checkbox" name="upstream_server"{% if resource.upstream_server %} checked="checked"{% end %} onclick="this.form.submit();"> Upstream server
+                  </label>
+                </form>
+            </li>
+            {% end %}
             <li class="divider-vertical"></li>
-            <li><a data-format="{{content[0][0]}}" id="trigger-{{method}}{{path["id"]}}{{status}}-edit" class="edit-button" href="/__manage/create?url_path={{path["url_path"]}}&method={{method}}&status_code={{status}}&format=">Edit</a></li>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a data-format="{{resource.files[0].format}}" id="trigger-{{resource.method}}{{path.id}}{{resource.status_code}}-edit" class="edit-button" href="/__manage/create?url_path={{resource.url_path}}&method={{resource.method}}&status_code={{resource.status_code}}&format=">Edit</a></li>
+                <li>
+                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{resource.method}} /{{resource.url_path}}?')) { this.href = '/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}?_method=delete'; } else { return false; }">Delete</a>
+                </li>
+              </ul>
+            </li>
         </ul>
       </div>
       <div class="tab-content">
-          {% for i, (format, data) in enumerate(content) %}
-          <div id="{{method}}{{path["id"]}}{{status}}{{i}}" class="tab-pane{% if i == 0 %} active{% end %}">
-            <pre class="prettyprint linenums">{{data}}</pre>
-            <pre class="prettyprint">
-            curl -v -X {{method}} http://{{address}}:{{port}}/{{path["url_path"]}}.{{format}}{% if status != "200" %}?__statusCode={{status}}{% end %}
-            </pre>
+          {% if resource.description %}
+          <div class="bs-docs-example">
+              <p>{% raw resource.description %}</p>
+          </div>
+          {% end %}
+          {% for i, file in enumerate(resource.files) %}
+          <div id="{{resource.method}}{{path.id}}{{resource.status_code}}{{i}}" class="{% if resource.description %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
+          <pre class="prettyprint linenums">{{file.data}}</pre>
+          <pre class="prettyprint">
+          curl -v -X {{resource.method}} http://{{address}}:{{port}}/{{resource.url_path}}.{{file.format}}{% if resource.status_code != "200" %}?__statusCode={{resource.status_code}}{% end %}
+          </pre>
           </div>
           {% end %}
       </div>
     </div>
     </section>
 
-    {% end %}{% end %}
+    {% end %}
 
-    {% for method_name, method_response in xmlrpc_methods %}
-    <section id="xmlrpc-{{method_name}}">
+    {% else %}
+
+    <section id="xmlrpc-{{path["name"]}}">
       <div class="navbar">
         <div class="navbar-inner">
-          <a class="brand" href="#">XML-RPC/{{method_name}}</a>
+          <a class="brand" href="#">RPC/{{path["name"]}}</a>
+          <ul class="nav">
+            {% for i, format in enumerate(path["responses"].iterkeys()) %}
+            <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{path["id"]}}{{format}}" href="#{{path["id"]}}{{format}}" data-toggle="tab">{{format}}</a></li>
+            {% end %}
+          </ul>
           <ul class="nav pull-right">
+              {% if application_data.upstream_server %}
+              <li>
+                  <form class="form-inline" method="post" action="/__manage/rpc/{{path["name"]}}">
+                    {% module xsrf_form_html() %}
+                    <label class="checkbox">
+                      <input type="checkbox" name="upstream_server"{% if path["upstream_server"] %} checked="checked"{% end %} onclick="this.form.submit();"> Upstream server
+                    </label>
+                  </form>
+              </li>
+              {% end %}
               <li class="divider-vertical"></li>
-              <li><a href="/__manage/create?protocol=xml-rpc&method_name={{method_name}}">Edit</a></li>
+              <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <li><a href="/__manage/create/rpc?method_name={{path["name"]}}">Edit</a></li>
+                <li>
+                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{path["name"]}} method?')) { this.href = '/__manage/rpc/{{path["name"]}}?_method=delete'; } else { return false; }">Delete</a>
+                </li>
+              </ul>
+            </li>
           </ul>
         </div>
         <div class="tab-content">
-            {% set method_call = "<?xml version='1.0'?><methodCall><methodName>"+method_name+"</methodName><params></params></methodCall>" %}
-            <div>
-              <pre class="prettyprint linenums">{{method_response}}</pre>
+            {% if path["description"] %}
+            <div class="bs-docs-example">
+                <p>{% raw path["description"] %}</p>
+            </div>
+            {% end %}
+            {% for i, (format, response) in enumerate(path["responses"].iteritems()) %}
+            <div id="{{path["id"]}}{{format}}" class="{% if path["description"] %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
+              <pre class="prettyprint linenums">{{response.data}}</pre>
               <pre class="prettyprint">
-              curl -v -X POST http://{{address}}:{{port}}/RPC2 -d "{{method_call}}" --header "Content-Type:text/xml"
+              curl -v -X POST http://{{address}}:{{port}}/RPC2 -d {{response.method_call}} --header "Content-Type:{{response.CONTENT_TYPE}}"
               </pre>
             </div>
+            {% end %}
         </div>
       </div>
     </section>
+
     {% end %}
-</div>
+
+    {% end %}
+    {% end %}
+    {% end %}
+
+    {% else %}
+
+    Api does't exists, <a href="/__manage/create">create resource method</a>.
+
+    {% end %}
+</div><!--/.list-resources -->
 
 {% end %}
 
 {% block javascripts %}
 <script src="/__static/js/list-resources.js" type="text/javascript" charset="utf-8"></script>
+
 {% end %}

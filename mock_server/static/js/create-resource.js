@@ -10,15 +10,18 @@ var responseHeadersEditor = ace.edit('response-headers-editor');
         'html': 'html',
         'atom': 'xml',
         'txt': 'text',
-        'rss': 'rss'
+        'rss': 'xml',
+        'md': 'markdown'
     };
 
     responseBodyEditor.getSession().setMode(
         'ace/mode/' + formatMode[$('#format').val()]);
     methodResponseEditor.getSession().setMode('ace/mode/json');
 
-    $('#url_path').focus();
+    $('#category').focus();
     $('#define-in-json').popover({'trigger': 'hover', 'html': true});
+    $('#jsonrpc').popover({'trigger': 'hover', 'html': true,
+                           'delay': {'show': 0, 'hide': 2000}});
 
     $('#format').change(function() {
         responseBodyEditor.getSession().setMode(
@@ -37,7 +40,7 @@ var responseHeadersEditor = ace.edit('response-headers-editor');
         $('#response_headers').val(responseHeadersEditor.getValue());
     });
 
-    $('#xml-rpc-form').submit(function(event) {
+    $('#rpc-form').submit(function(event) {
 
         if (!methodResponseEditor.getValue()) {
             alert("Method response can't be empty.");
@@ -51,5 +54,5 @@ var responseHeadersEditor = ace.edit('response-headers-editor');
     $('.protocol').click(function() {
         $('form').addClass('hidden');
         $('#'+$(this).val()+'-form').removeClass('hidden');
-    })
+    });
 })();
