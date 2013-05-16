@@ -48,6 +48,7 @@ class FilesMockProvider(api.FilesMockProvider):
             (self._request.url_path, self._request.method,
              self._status_code, self._format)
         response.status_code = status_code
+        response.headers = [("Content-Type", "text/html")]
 
         return response
 

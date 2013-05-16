@@ -96,7 +96,7 @@
           <div id="{{resource.method}}{{path.id}}{{resource.status_code}}{{i}}" class="{% if resource.description %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
           <pre class="prettyprint linenums">{{file.data}}</pre>
           <pre class="prettyprint">
-          curl -v -X {{resource.method}} http://{{address}}:{{port}}/{{resource.url_path}}.{{file.format}}{% if resource.status_code != "200" %}?__statusCode={{resource.status_code}}{% end %}
+          curl -v -X {{resource.method}} http://{{request.host}}/{{resource.url_path}}.{{file.format}}{% if resource.status_code != "200" %}?__statusCode={{resource.status_code}}{% end %}
           </pre>
           </div>
           {% end %}
@@ -150,7 +150,7 @@
             <div id="{{path["id"]}}{{format}}" class="{% if path["description"] %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
               <pre class="prettyprint linenums">{{response.data}}</pre>
               <pre class="prettyprint">
-              curl -v -X POST http://{{address}}:{{port}}/RPC2 -d {{response.method_call}} --header "Content-Type:{{response.CONTENT_TYPE}}"
+              curl -v -X POST http://{{request.host}}/RPC2 -d {{response.method_call}} --header "Content-Type:{{response.CONTENT_TYPE}}"
               </pre>
             </div>
             {% end %}

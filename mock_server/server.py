@@ -331,8 +331,6 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
         # render to response
         self.render("list_resources.html", categories=categories,
-                    port=self.settings["port"],
-                    address=self.settings["address"],
                     application_data=self.application.data,
                     number_of_methods=len(methods_with_category),
                     some_method=bool(paths or rpc_methods),
