@@ -7,7 +7,7 @@ Build status at [Travis CI](http://travis-ci.org/): [![Build Status](https://tra
 
 ## DEMO
 
-http://psyduck.cz:9999/__manage
+http://mockapi.org/__manage
 
 ## Installation
 
@@ -43,15 +43,15 @@ Mocking service is as simple as creating directory and few files within it just 
 
 Or you can use web interface
 
-    http://localhost:8888/__manage/create
+    http://mockapi.org/__manage/create
 
 
 Mocked GET /user/tom 
 
-    $ curl -v -X GET http://psyduck:9999/user/tom
+    $ curl -v -X GET http://mockapi.org/user/tom
     
     > GET /user/tom HTTP/1.1
-    > Host: psyduck:9999
+    > Host: mockapi.org
     > Accept: */*
     > 
     < HTTP/1.1 200 OK
