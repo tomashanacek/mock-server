@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 JSON = "json"
@@ -8,6 +7,7 @@ HTML = "html"
 CSV = "csv"
 RSS = "rss"
 ATOM = "atom"
+MARKDOWN = "md"
 
 DEFAULT_FORMAT = JSON
 SUPPORTED_FORMATS = {
@@ -17,7 +17,8 @@ SUPPORTED_FORMATS = {
     HTML: ("text/html", ),
     CSV: ("text/csv", ),
     RSS: ("application/rss+xml", ),
-    ATOM: ("application/atom+xml", )
+    ATOM: ("application/atom+xml", ),
+    MARKDOWN: ("text/x-markdown", "text/html")
 }
 
 

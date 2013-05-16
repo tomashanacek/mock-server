@@ -1,7 +1,5 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import unittest
 import os
 
 import tornado.testing
@@ -12,8 +10,8 @@ class TestXMLRPC(tornado.testing.AsyncHTTPTestCase):
 
     def get_app(self):
         return Application(7777, "localhost",
-                           os.path.join(os.path.dirname(__file__), "api"),
-                           False)
+                           os.path.join(os.path.dirname(__file__), "api/"),
+                           False, "application.json")
 
     def test_list_users(self):
         response = self.fetch(

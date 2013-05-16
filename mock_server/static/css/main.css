@@ -1,5 +1,4 @@
 body {
-  padding-top: 60px;
   padding-bottom: 40px;
 }
 .mb20 {
@@ -17,9 +16,8 @@ body {
   -webkit-border-radius: 6px;
      -moz-border-radius: 6px;
           border-radius: 6px;
-  -webkit-box-shadow: 0 1px 4px rgba(0,0,0,.065);
-     -moz-box-shadow: 0 1px 4px rgba(0,0,0,.065);
-          box-shadow: 0 1px 4px rgba(0,0,0,.065);
+  overflow: auto;
+  height: 520px;
 }
 .bs-docs-sidenav > li > a {
   display: block;
@@ -37,6 +35,11 @@ body {
   -webkit-border-radius: 0 0 6px 6px;
      -moz-border-radius: 0 0 6px 6px;
           border-radius: 0 0 6px 6px;
+}
+.bs-docs-sidenav > .category > a {
+  color: black;
+  font-weight: bold;
+  font-size: 16px;
 }
 .bs-docs-sidenav > .active > a {
   position: relative;
@@ -66,9 +69,6 @@ body {
   background-image: url(../img/glyphicons-halflings-white.png);
   opacity: 1;
 }
-.bs-docs-sidenav.affix {
-  top: 40px;
-}
 .bs-docs-sidenav.affix-bottom {
   position: absolute;
   top: auto;
@@ -86,11 +86,65 @@ body {
   width: 600px;
 }
 
+#request-body-editor {
+  height: 200px;
+  width: 600px;
+}
+
 #define-in-json {
+  cursor: help;
+  border-bottom: 1px dotted #999999;
+}
+
+#jsonrpc {
   cursor: help;
   border-bottom: 1px dotted #999999;
 }
 
 .list-resources {
   margin-bottom: 150px;
+}
+
+/* parameters */
+dd p.description {
+  margin-top: 10px;
+}
+
+dt {
+  border-top: 1px solid #EEE;
+  padding-top: 8px;
+}
+dd {
+  padding-bottom: 8px;
+}
+
+/* list resources */
+.bs-docs-example {
+  position: relative;
+  padding: 10px 19px 14px;
+  *padding-top: 19px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 4px;
+     -moz-border-radius: 4px;
+          border-radius: 4px;
+}
+
+.ppp .prettyprint.linenums {
+  padding-top: 15px;
+}
+
+/* Remove spacing between an example and it's code */
+.tab-content .ppp {
+  margin-top: -20px;
+  padding-top: 15px;
+}
+
+.navbar form {
+  margin: 0px;
+  float: none;
+  padding: 8px 15px 0px;
+  color: #777;
+  text-decoration: none;
+  text-shadow: 0 1px 0 #fff;
 }

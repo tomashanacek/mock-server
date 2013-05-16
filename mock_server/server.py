@@ -1,30 +1,47 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import os
 import re
-import json
-import xmlrpclib
 import datetime
-from email.parser import Parser
 
 import tornado.web
-from tornado.escape import json_encode, json_decode, utf8
+import tornado.httpclient
 
 from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
 from tornado_flash_message_mixin import FlashMessageMixin
+from model import ApplicationData, ResourceMethod, RPCMethod
+
+from methodslisting import ResourcesLoader, RPCMethodsLoader
+from validators import validate_url
+
+import model
+import rest
+import xmlrpc
+
+try:
+    import jsonrpc
+    jsonrpc_available = True
+except ImportError:
+    jsonrpc_available = False
 
 
 class Application(tornado.web.Application):
-    def __init__(self, port, address, api_dir, debug):
+    def __init__(self, port, address, api_dir, debug, application_data):
+
+        self.data = ApplicationData(os.path.join(api_dir, application_data))
+        self.data.load()
+
         supported_formats = "|".join(
             map(lambda x: ".%s" % x, SUPPORTED_FORMATS.keys()))
         handlers = [
+            (r"/__manage/resource/(.*)", ResourceMethodHandler),
+            (r"/__manage/rpc/(.*)", RPCMethodHandler),
+            (r"/__manage/upstream-server", UpstreamServerHandler),
             (r"/__manage/logs", ResourcesLogsHandler),
-            (r"/__manage/create/xml-rpc", CreateXMLRPCMethodHandler),
-            (r"/__manage/create", CreateResourceHandler),
+            (r"/__manage/create/rpc", CreateRPCMethodHandler),
+            (r"/__manage/create", CreateResourceMethodHandler),
             (r"/__manage", ListResourcesHandler),
-            (r"/%s" % XMLRPCHandler.PATH, XMLRPCHandler),
+            (r"/%s" % RPCHandler.PATH, RPCHandler),
             (r"/(.*)(%s)" % supported_formats, MainHandler),
             (r"/(.*)", MainHandler),
         ]
@@ -33,12 +50,13 @@ class Application(tornado.web.Application):
             port=port,
             address=address,
             dir=api_dir,
+            jsonrpc=jsonrpc_available,
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             static_url_prefix="/__static/",
             cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
         )
-        tornado.web.Application.__init__(self, handlers, **settings)
+        super(Application, self).__init__(handlers, **settings)
 
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -47,14 +65,11 @@ class BaseHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type",
                         "%s; charset=%s" % (content_type, charset))
 
-    def read_file(self, filename):
-        if os.path.isfile(filename):
-            try:
-                with open(filename) as f:
-                    content = f.read()
-                    return content
-            except IOError, e:
-                return None
+    def set_headers(self, headers):
+        if not headers:
+            return
+        for name, value in headers:
+            self.set_header(name, value)
 
     def log_request(self):
         data = {
@@ -71,8 +86,7 @@ class BaseHandler(tornado.web.RequestHandler):
             "time": datetime.datetime.now().isoformat()
         }
 
-        with open(self.log_request_name, "a") as f:
-            f.write("%s\n" % json.dumps(data))
+        model.add_to_resources_log(self.log_request_name, data)
 
     @property
     def log_request_name(self):
@@ -83,61 +97,108 @@ class BaseHandler(tornado.web.RequestHandler):
 
 class MainHandler(BaseHandler):
 
+    @tornado.web.asynchronous
     def head(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def get(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def post(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def delete(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def patch(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def put(self, path, format=DEFAULT_FORMAT):
         self._resolve_request(path, format)
 
+    @tornado.web.asynchronous
     def options(self, path, format=DEFAULT_FORMAT):
-        self._resolve_request(path, format)
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Max-Age", 21600)
+
+        if "Access-Control-Request-Headers" in self.request.headers:
+            self.set_header(
+                "Access-Control-Allow-Headers",
+                self.request.headers["Access-Control-Request-Headers"])
+        else:
+            headers = ', '.join(x.upper() for x in self.request.headers)
+            self.set_header("Access-Control-Allow-Headers", headers)
+
+        if "Access-Control-Request-Method" in self.request.headers:
+            self.set_header(
+                "Access-Control-Allow-Methods",
+                "OPTIONS, %s" %
+                self.request.headers["Access-Control-Request-Method"])
+
+        self.write("")
+        self.finish()
+
+    def _handle_request_on_upstream(self):
+        if self.request.method in ("POST", "PATCH", "PUT"):
+            body = self.request.body
+        else:
+            body = None
+
+        http = tornado.httpclient.AsyncHTTPClient()
+        http.fetch("%s%s" % (self.application.data.upstream_server,
+                             self.request.uri),
+                   callback=self.on_response, method=self.request.method,
+                   body=body, headers=self.request.headers,
+                   follow_redirects=True)
+
+    def on_response(self, response):
+        if response.error:
+            return self._default_response(
+                self.request.path, self.request.method,
+                self.status_code, self.format)
+
+        self.write(response.body)
+        self.finish()
 
     def _resolve_request(self, url_path, format):
-        format = self._get_format(format)
-        method = self.request.method
-        status_code = self.get_argument("__statusCode", 200)
-        url_path = self._parse_url_path(url_path)
-
-        content_path = os.path.join(
-            self.settings["dir"], url_path,
-            "%s_%s.%s" % (method, status_code, format))
-
-        content = self.read_file(content_path)
-
-        if not content:
-            return self._default_response(
-                url_path, method, status_code, format)
-
-        # set status
-        self.set_status(int(status_code))
-
-        # set headers
-        content_type = SUPPORTED_FORMATS[format][0]
-        self.set_content_type(content_type)
-        self.set_header("Access-Control-Allow-Origin", "*")
-
-        headers_path = os.path.join(
-            self.settings["dir"], url_path,
-            "%s_H_%s.%s" % (method, status_code, format))
-        self._set_headers(self._get_headers(headers_path))
-
         # log request
         self.log_request()
+        self.set_header("Access-Control-Allow-Origin", "*")
 
-        # write to response
-        self.write(content)
+        # get request data
+        self.format = self._get_format(format)
+        method = self.request.method
+        self.status_code = int(self.get_argument("__statusCode", 200))
+
+        # upstream server
+        upstream_server = self.application.data.get_upstream_server(
+            "%s-%s-%s" % (method, self.status_code, url_path))
+
+        if self.application.data.upstream_server and upstream_server:
+            return self._handle_request_on_upstream()
+
+        # mock
+        provider = rest.FilesMockProvider(self.settings["dir"])
+
+        response = rest.resolve_request(
+            provider, method, url_path, self.status_code, self.format)
+
+        if provider.error:
+            if self.application.data.upstream_server:
+                return self._handle_request_on_upstream()
+
+        # response
+        self.set_status(response.status_code)
+        self.set_content_type(SUPPORTED_FORMATS[self.format][0])
+        self.set_headers(response.headers)
+
+        self.write(response.content)
+        self.finish()
 
     def _default_response(self, url_path, method, status_code, format):
         self.set_status(404)
@@ -153,216 +214,154 @@ class MainHandler(BaseHandler):
 
         return format
 
-    def _set_headers(self, headers):
-        if not headers:
-            return
-        for (name, value) in headers:
-            self.set_header(name, value)
 
-    def _get_headers(self, filename):
-        if os.path.isfile(filename):
-            try:
-                with open(filename) as f:
-                    strip = lambda s: s if len(s) == 0 \
-                        else s[0] + s[1:].strip()
-                    headers = "\r\n".join(map(strip, f.readlines()))
-                    return Parser().parsestr(headers).items()
-            except IOError, e:
-                return None
-
-    def _parse_url_path(self, url_path):
-        url_path = re.sub("/{2,}", "/", url_path, count=1)
-        if os.path.sep != "/":
-            url_path = url_path.replace("/", os.path.sep)
-        return url_path
-
-
-class XMLRPCHandler(BaseHandler):
+class RPCHandler(BaseHandler):
     PATH = "RPC2"
-    LIST_METHODS = "system.listMethods"
-    PERSE_ERROR = (-32700, "parse_error")
-    METHOD_NOT_FOUND = (-32601, "method_not_found")
+    PARSE_ERROR = (-32700, "parse_error")
 
+    @tornado.web.asynchronous
     def post(self):
-
         # log request
         self.log_request()
+        self.set_header("Access-Control-Allow-Origin", "*")
 
-        # get method name
-        try:
-            method_name = xmlrpclib.loads(self.request.body)[1]
-        except:
-            return self.write(
-                xmlrpclib.dumps(
-                    xmlrpclib.Fault(*XMLRPCHandler.PARSE_ERROR),
+        # get content type
+        if "Content-Type" in self.request.headers and \
+                self.settings["jsonrpc"] and \
+                self.request.headers["Content-Type"] == "application/json":
+            self.content_type = "application/json"
+            self.rpclib = jsonrpc
+        else:
+            self.content_type = "text/xml"
+            self.rpclib = xmlrpc
+
+        self.process()
+
+    def _handle_request_on_upstream(self):
+        http = tornado.httpclient.AsyncHTTPClient()
+        headers = self.request.headers
+        headers["Accept"] = self.content_type
+
+        http.fetch("%s%s" % (self.application.data.upstream_server,
+                             self.request.uri),
+                   callback=self.on_response, method=self.request.method,
+                   body=self.request.body, headers=headers,
+                   follow_redirects=True)
+
+    def on_response(self, response):
+        if response.error:
+            self.write(
+                self.rpclib.dumps(
+                    self.rpclib.Fault(*RPCHandler.PARSE_ERROR),
                     methodresponse=True))
+            return self.finish()
 
-        # list available methods
-        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
-        available_methods = os.listdir(methods_dir)
-        available_methods.append(XMLRPCHandler.LIST_METHODS)
+        self.write(response.body)
+        self.finish()
 
-        # get response method
-        params = None
+    def process(self):
+        method_name = self.rpclib.FilesMockProvider.get_method_name(
+            self.request.body)
 
-        if method_name == XMLRPCHandler.LIST_METHODS:
-            params = (available_methods, )
-        elif method_name in available_methods:
-            content = self.read_file(os.path.join(
-                methods_dir, method_name))
-            if content is not None:
-                try:
-                    data = json.loads(content)
-                except ValueError:
-                    data = content
+        # upstream server
+        upstream_server = self.application.data.get_upstream_server(
+            "RPC-%s" % method_name)
 
-                params = (data, )
+        if self.application.data.upstream_server and upstream_server:
+            return self._handle_request_on_upstream()
 
-        if params is None:
-            params = xmlrpclib.Fault(*XMLRPCHandler.METHOD_NOT_FOUND)
+        # mock
+        provider = self.rpclib.FilesMockProvider(self.settings["dir"])
+        response = provider(method_name=method_name)
 
-        self.set_header("Content-Type", "text/xml")
-        self.write(xmlrpclib.dumps(params, methodresponse=True))
+        if provider.error and self.application.data.upstream_server:
+            return self._handle_request_on_upstream()
+
+        self.set_headers(response.headers)
+
+        self.write(response.content)
+        self.finish()
 
 
 class ResourcesLogsHandler(BaseHandler):
     def get(self):
-
-        if os.path.isfile(self.log_request_name):
-            with open(self.log_request_name) as f:
-                data = [json.loads(line) for line in f.readlines()]
-        else:
-            data = []
-
-        self.render("resources_logs.html", data=data)
+        self.render("resources_logs.html",
+                    data=model.load_resources_log(self.log_request_name))
 
 
 class ListResourcesHandler(BaseHandler, FlashMessageMixin):
     def get(self):
-        paths = [self._complete_resource(item)
-                 for item in os.walk(self.settings["dir"])
-                 if self._check_folder(item)]
+        # load categories
+        categories, methods_with_category = \
+            self.application.data.list_categories()
 
-        xmlrpc_methods = self._list_xmlrpc_methods()
+        # load resources
+        resources_loader = ResourcesLoader(
+            self.settings["dir"], self.application.data,
+            self.SUPPORTED_METHODS)
+        paths = resources_loader.load()
 
-        self.render("list_resources.html", paths=paths,
+        # load rpc methods
+        rpc_methods_loader = RPCMethodsLoader(
+            self.settings["dir"], self.application.data,
+            self.settings["jsonrpc"])
+        rpc_methods = rpc_methods_loader.load(RPCHandler.PATH)
+
+        # add resources to category
+        for path in paths:
+            for resource in path.resources.itervalues():
+                if resource.id in methods_with_category:
+                    category = methods_with_category[resource.id]["category"]
+                else:
+                    category = "__default"
+
+                if path not in categories[category]:
+                    categories[category].append(("rest", path))
+                    break
+
+        # add rpc methods to category
+        for method in rpc_methods:
+            name = "RPC-%s" % method["name"]
+            if name in methods_with_category:
+                category = methods_with_category[name]["category"]
+            else:
+                category = "__default"
+
+            categories[category].append(("rpc", method))
+
+        # render to response
+        self.render("list_resources.html", categories=categories,
                     port=self.settings["port"],
                     address=self.settings["address"],
-                    xmlrpc_methods=xmlrpc_methods,
-                    flash_message=self.get_flash_message("success"))
-
-    @classmethod
-    def create_id_from_url_path(cls, url_path):
-        return url_path.replace("/", "__")
-
-    def _list_xmlrpc_methods(self):
-        xmlrpc_methods = []
-        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
-
-        if not os.path.exists(methods_dir):
-            return xmlrpc_methods
-
-        for method in os.listdir(methods_dir):
-            json_data = self._load_file(os.path.join(methods_dir, method))
-            try:
-                data = json.loads(json_data)
-            except ValueError:
-                data = json_data
-
-            method_response = xmlrpclib.dumps(
-                (data, ), methodresponse=True)
-            xmlrpc_methods.append((method, method_response))
-
-        return xmlrpc_methods
-
-    def _complete_resource(self, item):
-        files = {}
-
-        c = re.compile(r"(%s)_(\d+)\.(\w+)" %
-                       ("|".join(self.SUPPORTED_METHODS)))
-
-        for current_file in item[2]:
-            m = c.match(current_file)
-            if m is None:
-                continue
-            method, status_code, format = m.groups()
-            if (method, status_code) in files:
-                files[(method, status_code)].append(
-                    (format, self._load_file(
-                        "%s/%s" % (item[0], current_file))))
-            else:
-                files[(method, status_code)] = \
-                     [(format, self._load_file(
-                      "%s/%s" % (item[0], current_file)))]
-
-        resource = {
-            "url_path": item[0][len(self.settings["dir"]):],
-            "files": files
-        }
-
-        resource["id"] = self.create_id_from_url_path(resource["url_path"])
-
-        return resource
-
-    def _load_file(self, path):
-        with open(path) as f:
-            data = f.read()
-            return data
-
-    def _check_folder(self, item):
-        if not item[2]:
-            return False
-
-        c = re.compile(r"(%s)_\d+\..*" % ("|".join(self.SUPPORTED_METHODS)))
-
-        for current_file in item[2]:
-            if c.search(current_file):
-                return True
-
-        return False
+                    application_data=self.application.data,
+                    number_of_methods=len(methods_with_category),
+                    some_method=bool(paths or rpc_methods),
+                    flash_messages=self.get_flash_messages(
+                        ("success", "error")))
 
 
-class CreateResourceHandler(BaseHandler, FlashMessageMixin):
+class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
     def get(self):
-        protocol = self.get_argument("protocol", "rest")
-
-        # rest
         url_path = self.get_argument("url_path", "")
         method = self.get_argument("method", "GET")
         status_code = self.get_argument("status_code", 200)
         format = self.get_argument("format", DEFAULT_FORMAT)
 
-        # xmlrpc
-        method_name = self.get_argument("method_name", "")
+        method_file = ResourceMethod(
+            self.settings["dir"], url_path, method, status_code)
+        method_file.load_format(format)
+        method_file.load_description()
 
-        if protocol == "rest":
-            response_body = self.read_file(
-                os.path.join(self.settings["dir"], url_path,
-                             "%s_%s.%s" % (method, status_code, format)))
-            response_headers = self.read_file(
-                os.path.join(self.settings["dir"], url_path,
-                             "%s_H_%s.%s" % (method, status_code, format)))
-            method_response = None
-        elif protocol == "xml-rpc":
-            method_response = self.read_file(
-                os.path.join(self.settings["dir"], XMLRPCHandler.PATH,
-                             method_name))
-            response_body = None
-            response_headers = None
+        category = self.application.data.get_category(
+            method_file.id)
 
         self.render(
             "create_resource.html",
-            protocol=protocol, url_path=url_path, method=method,
-            status_code=status_code, format=format,
-            edit=True if response_body is not None else False,
-            response_body=response_body,
-            response_headers=response_headers,
-            method_name=method_name,
-            method_response=method_response,
-            SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys())
+            protocol="rest", category=category, method_file=method_file,
+            SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
+            jsonrpc=self.settings["jsonrpc"])
 
     def post(self):
-
         self.check_xsrf_cookie()
 
         url_path = self.get_argument("url_path")
@@ -371,48 +370,166 @@ class CreateResourceHandler(BaseHandler, FlashMessageMixin):
         format = self.get_argument("format")
         response_body = self.get_argument("response_body")
         response_headers = self.get_argument("response_headers", "")
+        category = self.get_argument("category", "")
+        resource_description = self.get_argument("resource_description", "")
 
-        resource_dir = os.path.join(self.settings["dir"], url_path)
-        if not os.path.exists(resource_dir):
-            os.makedirs(resource_dir)
+        # save resource
+        method_file = ResourceMethod(
+            self.settings["dir"], url_path, method, status_code)
+        method_file.description = resource_description
+        method_file.add_format(format, response_body, response_headers)
+        method_file.save()
 
-        content_path = os.path.join(
-            resource_dir, "%s_%s.%s" % (method, status_code, format))
-        headers_path = os.path.join(
-            resource_dir, "%s_H_%s.%s" % (method, status_code, format))
-
-        # write content
-        with open(content_path, "w") as f:
-            f.write(utf8(response_body))
-
-        # write headers
-        with open(headers_path, "w") as f:
-            f.write(utf8(response_headers))
+        # add resource to category
+        self.application.data.save_category(method_file.id, category)
 
         self.set_flash_message(
             "success",
-            "Resource '%s' has been successfully created" % url_path)
+            "Resource '%s' has been successfully created." % url_path)
         self.redirect("/__manage")
 
 
-class CreateXMLRPCMethodHandler(BaseHandler, FlashMessageMixin):
+class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
+    def get(self):
+        method_name = self.get_argument("method_name", "")
+
+        method_file = RPCMethod(
+            os.path.join(self.settings["dir"], RPCHandler.PATH))
+        method_file.load(method_name)
+        method_file.load_description()
+
+        category = self.application.data.get_category(
+            "RPC-%s" % method_name)
+
+        self.render(
+            "create_resource.html",
+            protocol="rpc", category=category, method_file=method_file,
+            SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
+            jsonrpc=self.settings["jsonrpc"])
+
     def post(self):
 
         self.check_xsrf_cookie()
 
         method_name = self.get_argument("method_name")
         method_response = self.get_argument("method_response")
+        category = self.get_argument("category", "")
+        description = self.get_argument("description", "")
 
-        methods_dir = os.path.join(self.settings["dir"], XMLRPCHandler.PATH)
-        if not os.path.exists(methods_dir):
-            os.makedirs(methods_dir)
+        # save method
+        rpc_file = RPCMethod(
+            os.path.join(self.settings["dir"], RPCHandler.PATH))
+        rpc_file.description = description
+        rpc_file.save(method_name, method_response)
 
-        method_path = os.path.join(methods_dir, method_name)
-
-        with open(method_path, "w") as f:
-            f.write(utf8(method_response))
+        # add method to category
+        self.application.data.save_category(
+            "RPC-%s" % method_name, category)
 
         self.set_flash_message(
             "success",
-            "XML-RPC method '%s' has been successfully created" % method_name)
+            "RPC method '%s' has been successfully created." % method_name)
+        self.redirect("/__manage")
+
+
+class UpstreamServerHandler(BaseHandler, FlashMessageMixin):
+    def post(self):
+        self.check_xsrf_cookie()
+
+        upstream_server = self.get_argument("upstream_server", "")
+
+        if upstream_server and not validate_url(upstream_server):
+            self.set_flash_message(
+                "error",
+                "Url is not valid.")
+            return self.redirect("/__manage")
+
+        self.application.data.upstream_server = upstream_server
+        self.application.data.save()
+
+        self.set_flash_message(
+            "success",
+            "Upstream server has been successfully saved.")
+        self.redirect("/__manage")
+
+
+class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
+    def get(self, resource):
+        _method = self.get_argument("_method", "get")
+        if _method == "delete":
+            return self.delete(resource)
+
+        raise tornado.web.HTTPError(405)
+
+    def post(self, resource):
+        self.check_xsrf_cookie()
+
+        upstream_server = bool(self.get_argument("upstream_server", None))
+
+        self.application.data.save_method_upstream_server(
+            resource, upstream_server)
+
+        self.set_flash_message(
+            "success",
+            "Upstream server for resource method has been successfully %s." %
+            ("active" if upstream_server else "deactivate"))
+
+        self.redirect("/__manage")
+
+    def delete(self, resource):
+        # get http method, status and url path
+        c = re.compile(r"(%s)-(\d+)-(.+)" %
+                       ("|".join(self.SUPPORTED_METHODS)))
+        m = c.match(resource)
+        method, status_code, url_path = m.groups()
+
+        # delete resource method
+        method_file = ResourceMethod(
+            self.settings["dir"], url_path, method, status_code)
+        method_file.delete()
+
+        self.application.data.delete_resource(resource)
+
+        # redirect
+        self.set_flash_message(
+            "success",
+            "Resource method has been successfully deleted.")
+
+        self.redirect("/__manage")
+
+
+class RPCMethodHandler(BaseHandler, FlashMessageMixin):
+    def get(self, method_name):
+        _method = self.get_argument("_method", "get")
+        if _method == "delete":
+            return self.delete(method_name)
+
+        raise tornado.web.HTTPError(405)
+
+    def post(self, method_name):
+        self.check_xsrf_cookie()
+
+        upstream_server = bool(self.get_argument("upstream_server", None))
+
+        self.application.data.save_method_upstream_server(
+            "RPC-%s" % method_name, upstream_server)
+
+        self.set_flash_message(
+            "success",
+            "Upstream server for RPC method has been successfully %s." %
+            ("active" if upstream_server else "deactivate"))
+
+        self.redirect("/__manage")
+
+    def delete(self, method_name):
+        rpc_file = RPCMethod(
+            os.path.join(self.settings["dir"], RPCHandler.PATH))
+        rpc_file.delete(method_name)
+
+        self.application.data.delete_resource("RPC-%s" % method_name)
+
+        self.set_flash_message(
+            "success",
+            "RPC method has been successfully deleted.")
+
         self.redirect("/__manage")

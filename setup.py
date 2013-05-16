@@ -3,6 +3,7 @@
 
 import os
 from setuptools import setup
+from mock_server import __version__
 
 root_dir = os.path.dirname(__file__)
 
@@ -16,7 +17,7 @@ with open(os.path.join(root_dir, "requirements.txt")) as f:
 
 setup(
     name="mock-server",
-    version="0.2.0",
+    version=__version__,
     description=("Simple mock server for REST API"),
     long_description=read("README.md"),
     author="Tomas Hanacek",
