@@ -162,6 +162,9 @@ class MainHandler(BaseHandler):
                 self.request.path, self.request.method,
                 self.status_code, self.format)
 
+        for key, value in response.headers.iteritems():
+            self.set_header(key, value)
+
         self.write(response.body)
         self.finish()
 
@@ -255,6 +258,9 @@ class RPCHandler(BaseHandler):
                     self.rpclib.Fault(*RPCHandler.PARSE_ERROR),
                     methodresponse=True))
             return self.finish()
+
+        for key, value in response.headers.iteritems():
+            self.set_header(key, value)
 
         self.write(response.body)
         self.finish()
