@@ -5,7 +5,6 @@ import re
 import datetime
 
 import tornado.web
-import tornado.httpclient
 
 from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
 from tornado_flash_message_mixin import FlashMessageMixin
@@ -23,6 +22,13 @@ try:
     jsonrpc_available = True
 except ImportError:
     jsonrpc_available = False
+
+
+try:
+    import fastrpcapi
+    fastrpc_available = True
+except ImportError:
+    fastrpc_available = False
 
 
 class Application(tornado.web.Application):
@@ -51,6 +57,7 @@ class Application(tornado.web.Application):
             address=address,
             dir=api_dir,
             jsonrpc=jsonrpc_available,
+            fastrpc=fastrpc_available,
             template_path=os.path.join(os.path.dirname(__file__), "templates"),
             static_path=os.path.join(os.path.dirname(__file__), "static"),
             static_url_prefix="/__static/",
@@ -94,6 +101,11 @@ class BaseHandler(tornado.web.RequestHandler):
             self.settings["dir"], "access-%s.log" %
             datetime.datetime.now().strftime("%Y-%m-%d"))
 
+    def _upstream_server_callback(self, response):
+        self.set_headers(response.headers)
+        self.write(response.content)
+        self.finish()
+
 
 class MainHandler(BaseHandler):
 
@@ -131,7 +143,7 @@ class MainHandler(BaseHandler):
                 "Access-Control-Allow-Headers",
                 self.request.headers["Access-Control-Request-Headers"])
         else:
-            headers = ', '.join(x.upper() for x in self.request.headers)
+            headers = ", ".join(x.upper() for x in self.request.headers)
             self.set_header("Access-Control-Allow-Headers", headers)
 
         if "Access-Control-Request-Method" in self.request.headers:
@@ -144,29 +156,15 @@ class MainHandler(BaseHandler):
         self.finish()
 
     def _handle_request_on_upstream(self):
-        if self.request.method in ("POST", "PATCH", "PUT"):
-            body = self.request.body
-        else:
-            body = None
+        provider = self.rpclib.UpstreamServerProvider(
+            self.application.data.upstream_server)
 
-        http = tornado.httpclient.AsyncHTTPClient()
-        http.fetch("%s%s" % (self.application.data.upstream_server,
-                             self.request.uri),
-                   callback=self.on_response, method=self.request.method,
-                   body=body, headers=self.request.headers,
-                   follow_redirects=True)
-
-    def on_response(self, response):
-        if response.error:
-            return self._default_response(
-                self.request.path, self.request.method,
-                self.status_code, self.format)
-
-        for key, value in response.headers.iteritems():
-            self.set_header(key, value)
-
-        self.write(response.body)
-        self.finish()
+        provider({
+            "uri": self.request.uri,
+            "method": self.request.method,
+            "body": self.request.body,
+            "headers": self.request.headers
+        }, self._upstream_server_callback)
 
     def _resolve_request(self, url_path, format):
         # log request
@@ -228,60 +226,97 @@ class RPCHandler(BaseHandler):
         self.log_request()
         self.set_header("Access-Control-Allow-Origin", "*")
 
-        # get content type
-        if "Content-Type" in self.request.headers and \
-                self.settings["jsonrpc"] and \
-                self.request.headers["Content-Type"] == "application/json":
-            self.content_type = "application/json"
-            self.rpclib = jsonrpc
+        if not "Content-Length" in self.request.headers and \
+                self.request.headers.get(
+                    "Transfer-Encoding", None) == "chunked":
+            self.chunks = ""
+            self._stream = self.request.connection.stream
+            self._stream.read_until("\r\n", self._on_chunk_length)
+        else:
+            self._resolve_rpclib()
+            self._process(self.request.body)
+
+    def _on_chunks(self, all_chunks):
+        self._resolve_rpclib()
+        self._process(all_chunks)
+
+    def _on_chunk_length(self, data):
+        assert data[-2:] == "\r\n", "chunk size ends with CRLF"
+        chunk_length = int(data[:-2], 16)
+
+        if chunk_length:
+            self._stream.read_bytes(chunk_length + 2, self._on_chunk_data)
+        else:
+            self._on_chunks(self.chunks)
+
+    def _on_chunk_data(self, data):
+        assert data[-2:] == "\r\n", "chunk data ends with CRLF"
+        self.chunks += data[:-2]
+
+        self._stream.read_until("\r\n", self._on_chunk_length)
+
+    def _is_jsonrpc(self, content_type):
+        if self.settings["jsonrpc"] and content_type == "application/json":
+            return True
+        else:
+            return False
+
+    def _is_fastrpc(self, content_type):
+        if self.settings["fastrpc"] and content_type == "application/x-frpc":
+            return True
+        else:
+            return False
+
+    def _resolve_rpclib(self):
+        if "Content-Type" in self.request.headers:
+            if self._is_jsonrpc(self.request.headers["Content-Type"]):
+                self.content_type = "application/json"
+                self.rpclib = jsonrpc
+            elif self._is_fastrpc(self.request.headers["Content-Type"]):
+                self.rpclib = fastrpcapi
+                self.content_type = "application/x-frpc"
+            else:
+                self.content_type = "text/xml"
+                self.rpclib = xmlrpc
         else:
             self.content_type = "text/xml"
             self.rpclib = xmlrpc
 
-        self.process()
+    def _handle_request_on_upstream(self, request_data):
+        provider = self.rpclib.UpstreamServerProvider(
+            self.application.data.upstream_server)
 
-    def _handle_request_on_upstream(self):
-        http = tornado.httpclient.AsyncHTTPClient()
-        headers = self.request.headers
-        headers["Accept"] = self.content_type
+        if isinstance(provider, fastrpcapi.UpstreamServerProvider):
+            provider(request_data, self._upstream_server_callback)
+        else:
+            headers = self.request.headers
+            headers["Accept"] = self.content_type
 
-        http.fetch("%s%s" % (self.application.data.upstream_server,
-                             self.request.uri),
-                   callback=self.on_response, method=self.request.method,
-                   body=self.request.body, headers=headers,
-                   follow_redirects=True)
+            provider({
+                "uri": self.request.uri,
+                "method": self.request.method,
+                "body": request_data,
+                "headers": headers
+            }, self._upstream_server_callback)
 
-    def on_response(self, response):
-        if response.error:
-            self.write(
-                self.rpclib.dumps(
-                    self.rpclib.Fault(*RPCHandler.PARSE_ERROR),
-                    methodresponse=True))
-            return self.finish()
-
-        for key, value in response.headers.iteritems():
-            self.set_header(key, value)
-
-        self.write(response.body)
-        self.finish()
-
-    def process(self):
+    def _process(self, request_data):
         method_name = self.rpclib.FilesMockProvider.get_method_name(
-            self.request.body)
+            request_data)
+        self.method_name = method_name
 
         # upstream server
         upstream_server = self.application.data.get_upstream_server(
             "RPC-%s" % method_name)
 
         if self.application.data.upstream_server and upstream_server:
-            return self._handle_request_on_upstream()
+            return self._handle_request_on_upstream(request_data)
 
         # mock
         provider = self.rpclib.FilesMockProvider(self.settings["dir"])
         response = provider(method_name=method_name)
 
         if provider.error and self.application.data.upstream_server:
-            return self._handle_request_on_upstream()
+            return self._handle_request_on_upstream(request_data)
 
         self.set_headers(response.headers)
 

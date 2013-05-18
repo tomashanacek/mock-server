@@ -4,6 +4,7 @@ import os
 import json
 import util
 import api
+import tornado.httpclient
 
 from abc import abstractmethod
 
@@ -81,3 +82,31 @@ class FilesMockProvider(api.FilesMockProvider):
             available_methods = []
         available_methods.append(self.LIST_METHODS)
         return available_methods
+
+
+class UpstreamServerProvider(api.UpstreamServerProvider):
+
+    def __init__(self, upstream_server):
+        super(UpstreamServerProvider, self).__init__(upstream_server)
+
+        self._http_client = None
+        self._request_handler_callback = None
+
+    @property
+    def http_client(self):
+        if self._http_client is None:
+            self._http_client = tornado.httpclient.AsyncHTTPClient()
+
+        return self._http_client
+
+    def __call__(self, data, request_handler_callback):
+        self._request_handler_callback = request_handler_callback
+
+        self.http_client.fetch(
+            "%s%s" % (self.upstream_server, data["uri"]),
+            callback=self._on_response, method=data["method"],
+            body=data["body"], headers=data["headers"], follow_redirects=True)
+
+    def _on_response(self, response):
+        self._request_handler_callback(
+            api.Response(response.body, response.headers.items()))

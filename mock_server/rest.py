@@ -4,6 +4,8 @@ import os
 import re
 import api
 import util
+import tornado.httpclient
+
 from email.parser import Parser
 
 
@@ -115,6 +117,46 @@ def resolve_request(provider, method, url_path,
 
     return get_desired_response(
         provider, api.Request(method, url_path), status_code, format)
+
+
+class UpstreamServerProvider(api.UpstreamServerProvider):
+
+    def __init__(self, upstream_server):
+        super(UpstreamServerProvider, self).__init__(upstream_server)
+
+        self._http_client = None
+        self._request_handler_callback = None
+
+    @property
+    def http_client(self):
+        if self._http_client is None:
+            self._http_client = tornado.httpclient.AsyncHTTPClient()
+
+        return self._http_client
+
+    def __call__(self, data, request_handler_callback):
+        self._request_handler_callback = request_handler_callback
+
+        if data["method"] in ("POST", "PATCH", "PUT"):
+            body = data["body"]
+        else:
+            body = None
+
+        self.http_client.fetch(
+            "%s%s" % (self.upstream_server, data["uri"]),
+            callback=self._on_response, method=data["method"],
+            body=body, headers=data["headers"], follow_redirects=True)
+
+    def _on_response(self, response):
+        if response.error:
+            return self._default_response(
+                self.request.path, self.request.method,
+                self.status_code, self.format)
+        else:
+            data = response.body
+
+        self._request_handler_callback(
+            api.Response(data, response.headers.items()))
 
 
 if __name__ == "__main__":
