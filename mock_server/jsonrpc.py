@@ -25,6 +25,10 @@ class FilesMockProvider(rpc.FilesMockProvider):
             return ""
 
 
+class UpstreamServerProvider(rpc.UpstreamServerProvider):
+    pass
+
+
 if __name__ == "__main__":
 
     import api

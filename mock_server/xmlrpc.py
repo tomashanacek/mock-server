@@ -23,6 +23,10 @@ class FilesMockProvider(rpc.FilesMockProvider):
         return xmlrpclib.dumps((data, ), methodresponse=True)
 
 
+class UpstreamServerProvider(rpc.UpstreamServerProvider):
+    pass
+
+
 if __name__ == "__main__":
 
     import api

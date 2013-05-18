@@ -38,3 +38,18 @@ class Response(object):
     def __str__(self):
         return "Response(content='%s', headers=%s, status_code=%s)" % \
                (self.content, self.headers, self.status_code)
+
+
+class UpstreamServerProvider:
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, upstream_server):
+        self.upstream_server = upstream_server
+
+    @abstractmethod
+    def __call__(self, data, request_handler_callback):
+        """
+        :returns Response
+        """
+        pass
