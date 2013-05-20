@@ -80,7 +80,7 @@
               <ul class="dropdown-menu">
                 <li><a data-format="{{resource.files[0].format}}" id="trigger-{{resource.method}}{{path.id}}{{resource.status_code}}-edit" class="edit-button" href="/__manage/create?url_path={{resource.url_path}}&method={{resource.method}}&status_code={{resource.status_code}}&format=">Edit</a></li>
                 <li>
-                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{resource.method}} /{{resource.url_path}}?')) { this.href = '/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}?_method=delete'; } else { return false; }">Delete</a>
+                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{resource.method}} /{{resource.url_path}} ?')) { this.href = '/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}?_method=delete'; } else { return false; }">Delete</a>
                 </li>
               </ul>
             </li>

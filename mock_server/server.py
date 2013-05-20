@@ -104,6 +104,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def _upstream_server_callback(self, response):
         self.set_headers(response.headers)
         self.write(response.content)
+        self.set_status(response.status_code)
         self.finish()
 
 
@@ -156,14 +157,16 @@ class MainHandler(BaseHandler):
         self.finish()
 
     def _handle_request_on_upstream(self):
-        provider = self.rpclib.UpstreamServerProvider(
+        provider = rest.UpstreamServerProvider(
             self.application.data.upstream_server)
 
         provider({
             "uri": self.request.uri,
             "method": self.request.method,
             "body": self.request.body,
-            "headers": self.request.headers
+            "headers": self.request.headers,
+            "status_code": self.status_code,
+            "format": self.format
         }, self._upstream_server_callback)
 
     def _resolve_request(self, url_path, format):
@@ -517,7 +520,7 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
     def delete(self, resource):
         # get http method, status and url path
-        c = re.compile(r"(%s)-(\d+)-(.+)" %
+        c = re.compile(r"(%s)-(\d+)-(.*)" %
                        ("|".join(self.SUPPORTED_METHODS)))
         m = c.match(resource)
         method, status_code, url_path = m.groups()
