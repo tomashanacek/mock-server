@@ -169,8 +169,8 @@ class RPCMethodsLoader(MethodsLoader):
                 description = markdown(description)
 
             # upstream server
-            upstream_server = self.application_data.get_upstream_server(
-                "RPC-%s" % method)
+            upstream_server = self.application_data.get_rpc_upstream_server(
+                method)
 
             rpc_methods.append({
                 "name": method,
