@@ -394,11 +394,7 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
         method_file.load_responses()
         method_file.load_description()
 
-        # TODO - status code je pryc, je potreba odstranit i z application.json
-        # nove id je METHOD /path
-        # category = self.application.data.get_category(
-        #     method_file.id)
-        category = ""
+        category = self.application.data.get_category(method_file.id)
 
         self.render(
             "create_resource.html",
@@ -523,14 +519,13 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
     def delete(self, resource):
         # get http method, status and url path
-        c = re.compile(r"(%s)-(\d+)-(.*)" %
+        c = re.compile(r"(%s)-(.*)" %
                        ("|".join(SUPPORTED_METHODS)))
         m = c.match(resource)
-        method, status_code, url_path = m.groups()
+        method, url_path = m.groups()
 
         # delete resource method
-        method_file = ResourceMethod(
-            self.settings["dir"], url_path, method, status_code)
+        method_file = ResourceMethod(self.settings["dir"], url_path, method)
         method_file.delete()
 
         self.application.data.delete_resource(resource)

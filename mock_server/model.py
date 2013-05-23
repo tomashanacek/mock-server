@@ -281,10 +281,10 @@ class ResourceMethod(BaseMethod):
         # delete all resource method body and headers
         content_path = os.path.join(
             self.resource_dir,
-            "%s_%s.*" % (self.method, self.status_code))
+            "%s_*" % self.method)
         headers_path = os.path.join(
             self.resource_dir,
-            "%s_H_%s.*" % (self.method, self.status_code))
+            "%s_H_*" % self.method)
 
         for path in glob.glob(content_path):
             os.unlink(path)
@@ -295,7 +295,7 @@ class ResourceMethod(BaseMethod):
         # delete description
         description_path = os.path.join(
             self.resource_dir,
-            "%s_%s_doc.md" % (self.method, self.status_code))
+            "%s_%s_doc.md" % (self.method, 200))
 
         self._delete_file(description_path)
 
