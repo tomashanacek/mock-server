@@ -12,7 +12,7 @@
     <link href="/__static/vendor/pagedown/css/markdown-editor.css" type="text/css" rel="stylesheet" />
     <link href="/__static/css/main.css" type="text/css" rel="stylesheet" />
   </head>
-  <body>
+  <body{% block bodyattrs %}{% end %}>
     {% block header %}
     {% end %}
     <div class="navbar navbar-inverse navbar-static-top">

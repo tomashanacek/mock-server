@@ -7,6 +7,7 @@ import datetime
 import tornado.web
 
 from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
+from data import SUPPORTED_METHODS
 from tornado_flash_message_mixin import FlashMessageMixin
 from model import ApplicationData, ResourceMethod, RPCMethod
 
@@ -87,7 +88,7 @@ class BaseHandler(tornado.web.RequestHandler):
             "remote_ip": self.request.remote_ip,
             "request_time": 1000.0 * self.request.request_time(),
             "headers": self.request.headers,
-            "body": self.request.body,
+            "body": unicode(self.request.body),
             "arguments": self.request.arguments,
             "cookies": self.request.cookies,
             "time": datetime.datetime.now().isoformat()
@@ -181,7 +182,7 @@ class MainHandler(BaseHandler):
 
         # upstream server
         upstream_server = self.application.data.get_upstream_server(
-            "%s-%s-%s" % (method, self.status_code, url_path))
+            "%s-%s" % (method, url_path))
 
         if self.application.data.upstream_server and upstream_server:
             return self._handle_request_on_upstream()
@@ -342,7 +343,7 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
         # load resources
         resources_loader = ResourcesLoader(
             self.settings["dir"], self.application.data,
-            self.SUPPORTED_METHODS)
+            SUPPORTED_METHODS)
         paths = resources_loader.load()
 
         # load rpc methods
@@ -383,19 +384,21 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
 
 class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
+
     def get(self):
         url_path = self.get_argument("url_path", "")
         method = self.get_argument("method", "GET")
-        status_code = self.get_argument("status_code", 200)
-        format = self.get_argument("format", DEFAULT_FORMAT)
 
         method_file = ResourceMethod(
-            self.settings["dir"], url_path, method, status_code)
-        method_file.load_format(format)
+            self.settings["dir"], url_path, method)
+        method_file.load_responses()
         method_file.load_description()
 
-        category = self.application.data.get_category(
-            method_file.id)
+        # TODO - status code je pryc, je potreba odstranit i z application.json
+        # nove id je METHOD /path
+        # category = self.application.data.get_category(
+        #     method_file.id)
+        category = ""
 
         self.render(
             "create_resource.html",
@@ -404,31 +407,32 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
             jsonrpc=self.settings["jsonrpc"])
 
     def post(self):
+        # check xsrf cookie
         self.check_xsrf_cookie()
 
-        url_path = self.get_argument("url_path")
-        method = self.get_argument("method")
-        status_code = self.get_argument("status_code")
-        format = self.get_argument("format")
-        response_body = self.get_argument("response_body")
-        response_headers = self.get_argument("response_headers", "")
-        category = self.get_argument("category", "")
-        resource_description = self.get_argument("resource_description", "")
+        # get data from request body
+        data = tornado.escape.json_decode(self.request.body)
 
         # save resource
-        method_file = ResourceMethod(
-            self.settings["dir"], url_path, method, status_code)
-        method_file.description = resource_description
-        method_file.add_format(format, response_body, response_headers)
-        method_file.save()
+        for response in data["responses"]:
+            # save resource
+            method_file = ResourceMethod(
+                self.settings["dir"], data["url_path"], data["method"])
+            method_file.description = data["description"]
+            method_file.add_response(
+                response["status_code"], response["format"],
+                response["body"], response["headers"])
+            method_file.save()
 
-        # add resource to category
-        self.application.data.save_category(method_file.id, category)
+            # add resource to category
+            self.application.data.save_category(
+                method_file.id, data["category"])
 
         self.set_flash_message(
             "success",
-            "Resource '%s' has been successfully created." % url_path)
-        self.redirect("/__manage")
+            "Resource '%s' has been successfully created." % data["url_path"])
+        self.set_header("Content-Type", "application/json")
+        self.write("OK")
 
 
 class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
@@ -521,7 +525,7 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
     def delete(self, resource):
         # get http method, status and url path
         c = re.compile(r"(%s)-(\d+)-(.*)" %
-                       ("|".join(self.SUPPORTED_METHODS)))
+                       ("|".join(SUPPORTED_METHODS)))
         m = c.match(resource)
         method, status_code, url_path = m.groups()
 

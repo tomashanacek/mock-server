@@ -4,13 +4,13 @@
 {% set active_page = "create_resource" %}
 {% end %}
 
+{% block bodyattrs %}
+class="create-resource"
+{% end %}
+
 {% block body %}
 <div class="span12">
-    <div class="page-header">
-        <h1>{% if method_file.edit %}Edit{% else %}Create{% end %} resource method</h1>
-    </div>
-
-    <div class="mb20">
+    <div class="mb20" id="api-selection">
         <label class="radio inline">
           <input type="radio" class="protocol" name="protocol" value="rest"{% if protocol == "rest" %} checked{% end %}> REST
         </label>
@@ -24,13 +24,8 @@
         {% module xsrf_form_html() %}
 
         <div class="control-group">
-            <label for="category">Category</label>
-            <input type="text" name="category" id="category" autocomplete="off" value="{{category}}">
-        </div>
-
-        <div class="control-group">
             <label for="url_path">Url path</label>
-            <input type="text" name="url_path" id="url_path" value="{% if protocol == 'rest' %}{{method_file.url_path}}{% end %}" required>
+            <input type="text" name="url_path" id="url_path" value="{% if protocol == 'rest' %}{{method_file.url_path}}{% end %}" class="input-xlarge" required>
         </div>
 
         <div class="control-group">
@@ -43,40 +38,29 @@
         </div>
 
         <div class="control-group">
-            <label for="status_code">Status code</label>
-            <input type="text" name="status_code" id="status_code" value="{% if protocol == 'rest' %}{{method_file.status_code}}{% end %}" required>
+            <label for="category">Category</label>
+            <input type="text" name="category" id="category" autocomplete="off" value="{{category}}" class="input-xlarge">
         </div>
 
-        <div class="control-group">
-            <label for="format">Response format</label>
-            <select name="format" id="format">
-                {% for supported_format in SUPPORTED_FORMATS %}
-                <option{% if protocol == 'rest' and supported_format == method_file.format %} selected="selected"{% end %}>{{supported_format}}</option>
-                {% end %}
-            </select>
+        <div class="tabbable" id="responses">
+          <ul class="nav nav-tabs" id="response-tabs">
+            <li id="add-response-li"><a href="javascript:void(0)" id="add-response">Add response</a></li>
+          </ul>
+          <div class="tab-content" id="response-tabs-content">
+          </div>
         </div>
 
-        <div class="control-group">
-            <label>Response body</label>
-            <div id="response-body-editor"></div>
-            <input type="hidden" name="response_body" id="response_body" />
-        </div>
-
-        <div class="control-group">
-            <label>Response headers</label>
-            <div id="response-headers-editor">{% if protocol == "rest" and method_file.response_headers %}{{method_file.response_headers}}{% end %}</div>
-            <input type="hidden" name="response_headers" id="response_headers" />
-        </div>
+        <div class="line"></div>
 
         <div class="wmd-panel">
-            <label>Resource description</label>
+            <label>Description</label>
             <div id="wmd-button-bar"></div>
             <textarea class="wmd-input" id="wmd-input" name="resource_description">{% if protocol == 'rest' and method_file.description %}{{method_file.description}}{% end %}</textarea>
         </div>
         <div id="wmd-preview" class="wmd-panel wmd-preview"></div>
 
         <div class="control-group">
-          <button type="submit" class="btn">Save resource</button>
+          <button type="button" class="btn" id="save-resource">Save</button>
         </div>
       </fieldset>
     </form>
@@ -86,13 +70,13 @@
             {% module xsrf_form_html() %}
 
             <div class="control-group">
-                <label for="rpc_category">Category</label>
-                <input type="text" name="category" id="rpc_category" autocomplete="off" value="{{category}}">
+                <label for="method_name">Method name</label>
+                <input type="text" name="method_name" id="method_name" value="{% if protocol == "rpc" %}{{method_file.name}}{% end %}" required>
             </div>
 
             <div class="control-group">
-                <label for="method_name">Method name</label>
-                <input type="text" name="method_name" id="method_name" value="{% if protocol == "rpc" %}{{method_file.name}}{% end %}" required>
+                <label for="rpc_category">Category</label>
+                <input type="text" name="category" id="rpc_category" autocomplete="off" value="{{category}}">
             </div>
 
             <div class="control-group">
@@ -109,7 +93,7 @@
             <div id="wmd-preview-rpc" class="wmd-panel wmd-preview"></div>
 
             <div class="control-group">
-              <button type="submit" class="btn">Save method</button>
+              <button type="submit" class="btn">Save</button>
             </div>
         </fieldset>
     </form>
@@ -122,10 +106,24 @@
 <script src="/__static/vendor/pagedown/js/Markdown.Editor.js" type="text/javascript" charset="utf-8"></script>
 <script src="/__static/vendor/ace/js/ace.js" type="text/javascript" charset="utf-8"></script>
 <script src="/__static/js/create-resource.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/js/util.js" type="text/javascript" charset="utf-8"></script>
+<script src="/__static/js/create-rest.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript">
-{% if protocol == "rest" and method_file.response_body %}
-responseBodyEditor.setValue({% raw json_encode(method_file.response_body) %});
+
+var manager = new CreateRestMethodManager({{SUPPORTED_FORMATS}});
+{% for i, response in enumerate(method_file.responses) %}
+var response = manager.addResponse();
+response.setDefaults({% raw json_encode(response) %});
+{% if i == 0 %}
+response.show();
 {% end %}
+{% end %}
+
+{% if not method_file.responses %}
+var response = manager.addResponse();
+response.show();
+{% end %}
+
 {% if protocol == "rpc" and method_file.method_response %}
 methodResponseEditor.setValue({% raw json_encode(method_file.method_response) %});
 {% end %}

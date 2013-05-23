@@ -4,6 +4,7 @@ import os
 import re
 import json
 import glob
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -11,6 +12,7 @@ except ImportError:
 
 from tornado.escape import utf8
 from util import read_file
+from data import SUPPORTED_METHODS
 
 
 def get_url_path(file_path):
@@ -135,11 +137,24 @@ class ApplicationData(object):
         self.save()
 
     def _get_resource_attribute(self, resource, key, default=""):
-        if resource in self.resources and \
-                key in self.resources[resource]:
-            return self.resources[resource][key]
-        else:
-            return default
+
+        # get method, status_code and url_path
+        c = re.compile(r"(%s)-(.*)" %
+                       ("|".join(SUPPORTED_METHODS)))
+        m = c.match(resource)
+        method, url_path = m.groups()
+
+        # match resource
+        path_regex = "/".join(["(%s|__[^\/]*)" % item
+                               for item in url_path.split("/")])
+        c = re.compile("%s-%s" % (method, path_regex))
+
+        for resource_name, data in self.resources.items():
+            m = c.match(resource_name)
+            if m and key in data and m.groups()[0] != "":
+                return data[key]
+
+        return default
 
     def _set_resource_attribute(self, resource, key, value):
         if self.resources:
@@ -170,76 +185,82 @@ class BaseMethod(object):
 
 class ResourceMethod(BaseMethod):
 
-    def __init__(self, api_dir, url_path, method, status_code):
+    def __init__(self, api_dir, url_path, method):
         super(ResourceMethod, self).__init__()
 
         self.url_path = url_path
         self.method = method
-        self.status_code = status_code
 
         file_url_path = get_file_path(url_path)
 
-        self.id = "%s-%s-%s" % (method, status_code, file_url_path)
+        self.id = "%s-%s" % (method, file_url_path)
         self.resource_dir = os.path.join(api_dir, file_url_path)
 
-        self.formats = []
+        self.responses = []
 
-    def load_format(self, format):
-        self.format = format
+    def load_responses(self):
 
-        self.response_body = read_file(
-            os.path.join(
-                self.resource_dir,
-                "%s_%s.%s" % (self.method, self.status_code, format)))
-        self.response_headers = read_file(
-            os.path.join(
-                self.resource_dir,
-                "%s_H_%s.%s" % (self.method, self.status_code, format)))
+        c = re.compile(r"%s_(\d{3})\.(\w+)" % self.method)
 
-        if self.response_body:
-            self.edit = True
+        for item in os.listdir(self.resource_dir):
+            m = c.match(item)
+            if m:
+                status_code, format = m.groups()
+
+                body = read_file(
+                    os.path.join(
+                        self.resource_dir,
+                        "%s_%s.%s" % (self.method, status_code, format)))
+                headers = read_file(
+                    os.path.join(
+                        self.resource_dir,
+                        "%s_H_%s.%s" % (self.method, status_code, format)))
+                self.add_response(status_code, format, body, headers)
 
     def load_description(self):
         self.description = read_file(
             os.path.join(
                 self.resource_dir,
-                "%s_%s_doc.md" % (self.method, self.status_code)))
+                "%s_%s_doc.md" % (self.method, 200)))
 
-    def add_format(self, format, response_body, response_headers):
-
-        self.formats.append((format, response_body, response_headers))
+    def add_response(self, status_code, format, body, headers):
+        self.responses.append({
+            "status_code": status_code,
+            "format": format,
+            "body": body,
+            "headers": headers
+        })
 
     def save(self):
         if not os.path.exists(self.resource_dir):
             os.makedirs(self.resource_dir)
 
-        # save resource in given formats
-        for format in self.formats:
-            self.save_format(*format)
+        # save resource in given responses
+        for response in self.responses:
+            self.save_response(**response)
 
         # write description
         if self.description:
             description_path = os.path.join(
-                self.resource_dir,
-                "%s_%s_doc.md" % (self.method, self.status_code))
+                self.resource_dir, "%s_doc.md" % self.method)
             with open(description_path, "w") as f:
                 f.write(utf8(self.description))
 
-    def save_format(self, format, response_body, response_headers):
+    def save_response(self, status_code, format, body, headers):
         content_path = os.path.join(
             self.resource_dir,
-            "%s_%s.%s" % (self.method, self.status_code, format))
+            "%s_%s.%s" % (self.method, status_code, format))
         headers_path = os.path.join(
             self.resource_dir,
-            "%s_H_%s.%s" % (self.method, self.status_code, format))
+            "%s_H_%s.%s" % (self.method, status_code, format))
 
         # write content
         with open(content_path, "w") as f:
-            f.write(utf8(response_body))
+            f.write(utf8(body))
 
         # write headers
         with open(headers_path, "w") as f:
-            f.write(utf8(response_headers))
+            f.write(utf8(headers))
 
     def delete(self):
         # delete all resource method body and headers

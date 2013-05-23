@@ -19,14 +19,14 @@ def command_line_options():
     tornado.options.parse_command_line()
 
     if options.dir is None:
-        print "!! Specify API directory (--dir=/directory/for/api)\n"
+        print("!! Specify API directory (--dir=/directory/for/api)\n")
         tornado.options.print_help()
         return False
     elif not options.dir.endswith(os.path.sep):
         options.dir = "%s%s" % (options.dir, os.path.sep)
 
     if not os.path.exists(options.dir):
-        print "Error: Directory: '%s' doesn't exists" % options.dir
+        print("Error: Directory: '%s' doesn't exists" % options.dir)
         return False
 
     return True
@@ -45,11 +45,12 @@ def main():
     except ImportError, e:
         if options.debug:
             raise
-        print "%s\nTry run with --debug" % str(e)
+        print("%s\nTry run with --debug" % str(e))
         return
 
     app = Application(options.port, options.address,
                       options.dir, options.debug, options.application_data)
+    print("Serving on %s:%s.." % (options.address, options.port))
     app.listen(options.port, options.address)
     tornado.ioloop.IOLoop.instance().start()
 

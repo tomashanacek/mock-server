@@ -58,31 +58,33 @@ class ResourcesLoader(MethodsLoader):
                 continue
             method, status_code, format = m.groups()
 
-            if (method, status_code) in url_path.resources:
-                url_path.resources[(method, status_code)].files.append(
+            if method in url_path.resources:
+                url_path.resources[method].files.append(
                     ResourceFormatFile(
+                        status_code,
                         format,
                         read_file("%s/%s" % (item[0], current_file))))
             else:
                 resource = self._create_resource(
-                    item[0], method, status_code, url_path.path)
+                    item[0], method, url_path.path)
 
                 resource.files.append(
                     ResourceFormatFile(
+                        status_code,
                         format,
                         read_file("%s/%s" % (item[0], current_file))))
 
                 # add resource to url_path
-                url_path.resources[(method, status_code)] = resource
+                url_path.resources[method] = resource
 
         return url_path
 
-    def _create_resource(self, file_path, method, status_code, url_path):
-        resource = Resource(method, status_code, url_path)
+    def _create_resource(self, file_path, method, url_path):
+        resource = Resource(method, url_path)
 
         # resource description
         resource_description_path = os.path.join(
-            file_path, "%s_%s_doc.md" % (method, status_code))
+            file_path, "%s_%s_doc.md" % (method, 200))
         resource_description = read_file(resource_description_path)
 
         if resource_description:
@@ -91,8 +93,7 @@ class ResourcesLoader(MethodsLoader):
         # upstream server
         resource.upstream_server = \
             self.application_data.get_upstream_server(
-                "%s-%s-%s" % (method, status_code,
-                              file_path[len(self.api_dir):]))
+                "%s-%s" % (method, file_path[len(self.api_dir):]))
 
         return resource
 
@@ -110,12 +111,11 @@ class UrlPath(object):
 
 class Resource(object):
 
-    def __init__(self, method, status_code, url_path):
+    def __init__(self, method, url_path):
         self.method = method
-        self.status_code = status_code
         self.url_path = url_path
 
-        self.id = "%s-%s-%s" % (self.method, self.status_code, self.url_path)
+        self.id = "%s-%s" % (self.method, self.url_path)
 
         self.files = []
         self.upstream_server = False
@@ -132,7 +132,8 @@ class Resource(object):
 
 class ResourceFormatFile(object):
 
-    def __init__(self, format, data):
+    def __init__(self, status_code, format, data):
+        self.status_code = status_code
         self.format = format
         self.data = data
 

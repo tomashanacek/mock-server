@@ -39,7 +39,6 @@
     </div>
     {% end %}{% end %}
 
-    {% if some_method %}
     <form class="form-inline" method="post" action="/__manage/upstream-server">
       <fieldset>
         <legend>Upstream server</legend>
@@ -49,6 +48,8 @@
       </fieldset>
     </form>
 
+    {% if some_method %}
+
     {% for category, paths in categories.iteritems() %}{% if paths %}
     <h2 id="{{category}}">{% if category == "__default" %}Not in category{% else %}{{category}}{% end %}</h2>
     {% for type, path in paths %}
@@ -57,16 +58,16 @@
     <section id="{{resource.url_path}}">
     <div class="navbar">
       <div class="navbar-inner">
-        <a class="brand" href="#">{{resource.method}} /{{resource.url_path}} - {{resource.status_code}}</a>
+        <a class="brand" href="#">{{resource.method}} /{{resource.url_path}}</a>
         <ul class="nav">
           {% for i, file in enumerate(resource.files) %}
-          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{resource.method}}{{path.id}}{{resource.status_code}}" href="#{{resource.method}}{{path.id}}{{resource.status_code}}{{i}}" data-toggle="tab">{{file.format}}</a></li>
+          <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{resource.method}}{{path.id}}{{file.status_code}}" href="#{{resource.method}}{{path.id}}{{file.status_code}}{{i}}" data-toggle="tab">{{file.status_code}} - {{file.format}}</a></li>
           {% end %}
         </ul>
         <ul class="nav pull-right">
             {% if application_data.upstream_server %}
             <li>
-                <form class="form-inline" method="post" action="/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}">
+                <form class="form-inline" method="post" action="/__manage/resource/{{resource.method}}-{{resource.url_path}}">
                   {% module xsrf_form_html() %}
                   <label class="checkbox">
                     <input type="checkbox" name="upstream_server"{% if resource.upstream_server %} checked="checked"{% end %} onclick="this.form.submit();"> Upstream server
@@ -78,9 +79,9 @@
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a data-format="{{resource.files[0].format}}" id="trigger-{{resource.method}}{{path.id}}{{resource.status_code}}-edit" class="edit-button" href="/__manage/create?url_path={{resource.url_path}}&method={{resource.method}}&status_code={{resource.status_code}}&format=">Edit</a></li>
+                <li><a id="trigger-{{resource.method}}{{path.id}}-edit" class="edit-button" href="/__manage/create?method={{resource.method}}&url_path={{resource.url_path}}">Edit</a></li>
                 <li>
-                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{resource.method}} /{{resource.url_path}} ?')) { this.href = '/__manage/resource/{{resource.method}}-{{resource.status_code}}-{{resource.url_path}}?_method=delete'; } else { return false; }">Delete</a>
+                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{resource.method}} /{{resource.url_path}} ?')) { this.href = '/__manage/resource/{{resource.method}}-{{resource.url_path}}?_method=delete'; } else { return false; }">Delete</a>
                 </li>
               </ul>
             </li>
@@ -93,10 +94,10 @@
           </div>
           {% end %}
           {% for i, file in enumerate(resource.files) %}
-          <div id="{{resource.method}}{{path.id}}{{resource.status_code}}{{i}}" class="{% if resource.description %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
+          <div id="{{resource.method}}{{path.id}}{{file.status_code}}{{i}}" class="{% if resource.description %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
           <pre class="prettyprint linenums">{{file.data}}</pre>
           <pre class="prettyprint">
-          curl -v -X {{resource.method}} http://{{request.host}}/{{resource.url_path}}.{{file.format}}{% if resource.status_code != "200" %}?__statusCode={{resource.status_code}}{% end %}
+          curl -v -X {{resource.method}} http://{{request.host}}/{{resource.url_path}}.{{file.format}}{% if file.status_code != "200" %}?__statusCode={{file.status_code}}{% end %}
           </pre>
           </div>
           {% end %}

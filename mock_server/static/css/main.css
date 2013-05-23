@@ -76,14 +76,14 @@ body {
 }
 
 /* editors */
-#response-body-editor, #method-response-editor {
+.ace_editor, #response-body-editor, #method-response-editor {
   height: 300px;
-  width: 600px;
+  width: 100%;
 }
 
 #response-headers-editor {
   height: 200px;
-  width: 600px;
+  width: 100%;
 }
 
 #request-body-editor {
@@ -147,4 +147,39 @@ dd {
   color: #777;
   text-decoration: none;
   text-shadow: 0 1px 0 #fff;
+}
+
+.line {
+  border-bottom: 1px solid #eeeeee;
+  margin: 20px 0;
+}
+
+/* create resource */
+#rest-form #responses {
+  padding-top: 20px;
+}
+
+body.create-resource { background-color: #f5f5f5; }
+
+#api-selection, #rest-form, #rpc-form {
+    max-width: 1000px;
+    padding: 19px 29px 29px;
+    margin: 0 auto 20px;
+    background-color: #fff;
+    border: 1px solid #e5e5e5;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+}
+
+#api-selection {
+    -webkit-border-top-left-radius: 0px;
+    -moz-border-top-left-radius: 0px;
+    border-top-left-radius: 0px;
+    -webkit-border-top-right-radius: 0px;
+    -moz-border-top-right-radius: 0px;
+    border-top-right-radius: 0px;
 }
