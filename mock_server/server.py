@@ -309,8 +309,8 @@ class RPCHandler(BaseHandler):
         self.method_name = method_name
 
         # upstream server
-        upstream_server = self.application.data.get_upstream_server(
-            "RPC-%s" % method_name)
+        upstream_server = self.application.data.get_rpc_upstream_server(
+            method_name)
 
         if self.application.data.upstream_server and upstream_server:
             return self._handle_request_on_upstream(request_data)
@@ -444,8 +444,7 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
         method_file.load(method_name)
         method_file.load_description()
 
-        category = self.application.data.get_category(
-            "RPC-%s" % method_name)
+        category = self.application.data.get_rpc_category(method_name)
 
         self.render(
             "create_resource.html",

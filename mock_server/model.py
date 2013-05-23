@@ -95,6 +95,12 @@ class ApplicationData(object):
     def get_upstream_server(self, resource):
         return self._get_resource_attribute(resource, "upstream-server", False)
 
+    def get_rpc_category(self, method_name):
+        return self._get_rpc_attributes(method_name, "category")
+
+    def get_rpc_upstream_server(self, method_name):
+        return self._get_rpc_attributes(method_name, "upstream-server", False)
+
     def list_categories(self):
         if self.resources:
             categories = {}
@@ -136,8 +142,17 @@ class ApplicationData(object):
 
         self.save()
 
-    def _get_resource_attribute(self, resource, key, default=""):
+    def _get_rpc_attributes(self, method_name, key, default=""):
 
+        method = "RPC-%s" % method_name
+
+        if method in self.resources and \
+                key in self.resources[method]:
+            return self.resources[method][key]
+        else:
+            return default
+
+    def _get_resource_attribute(self, resource, key, default=""):
         # get method, status_code and url_path
         c = re.compile(r"(%s)-(.*)" %
                        ("|".join(SUPPORTED_METHODS)))
