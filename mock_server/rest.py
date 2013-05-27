@@ -148,6 +148,9 @@ class UpstreamServerProvider(api.UpstreamServerProvider):
         else:
             body = None
 
+        if "If-None-Match" in data["headers"]:
+            del data["headers"]["If-None-Match"]
+
         self.http_client.fetch(
             "%s%s" % (self.upstream_server, data["uri"]),
             callback=self._on_response, method=data["method"],

@@ -217,6 +217,9 @@ class ResourceMethod(BaseMethod):
 
         c = re.compile(r"%s_(\d{3})\.(\w+)" % self.method)
 
+        if not os.path.exists(self.resource_dir):
+            return
+
         for item in os.listdir(self.resource_dir):
             m = c.match(item)
             if m:
