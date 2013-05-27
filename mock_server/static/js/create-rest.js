@@ -42,22 +42,41 @@ CreateRestMethodManager.prototype._handleSave = function() {
         data.responses.push(responseData);
     }
 
+    if (!data.responses.length) {
+        alert("Response body can't be empty.");
+        return null;
+    }
+
     $.postJSON('/__manage/create', data, function(response) {
         window.location.href = '/__manage';
     });
     return true;
 };
 
+CreateRestMethodManager.prototype._showFirst = function() {
+    if (this._responses.length) {
+        this._responses[0].show();
+    } else {
+        this.addResponse().show();
+    }
+};
+
+CreateRestMethodManager.prototype.removeResponse = function(response) {
+    this._responses.splice(this._responses.indexOf(response), 1);
+    this._showFirst();
+};
+
 CreateRestMethodManager.prototype.addResponse = function() {
     var li = document.createElement('li');
-    var tab = document.createElement('a');
-    tab.href = '#tab' + this._tabIndex;
-    tab.setAttribute('data-toggle', 'tab');
-    tab.innerHTML = 'Response (200 - json)';
-    li.appendChild(tab);
+    var tabA = document.createElement('a');
+    tabA.href = '#tab' + this._tabIndex;
+    tabA.setAttribute('data-toggle', 'tab');
+    li.appendChild(tabA);
 
     var response = new Response(this._tabIndex);
-    response.tab = tab;
+    response.removeCallback = this.removeResponse.bind(this);
+    response.setTab(tabA);
+
     this._tabsContent.append(response.build(this._supportedFormats));
     this._responses.push(response);
 
@@ -71,7 +90,10 @@ CreateRestMethodManager.prototype.addResponse = function() {
 
 function Response(id) {
     this._id = id;
-    this.tab = null;
+    this._tab = null;
+    this._tabText = null;
+
+    this.removeCallback = null;
 }
 
 Response.formatMode = {
@@ -85,8 +107,33 @@ Response.formatMode = {
     'md': 'markdown'
 };
 
+Response.prototype.setTab = function(tab) {
+    this._tabText = document.createElement('span');
+    this._tabText.innerHTML = 'Response (200 - json) ';
+
+    var removeButton = document.createElement('i');
+    removeButton.className = 'icon-remove';
+
+    var context = this;
+    $(removeButton).click(function() {
+        context._handleRemove();
+    });
+
+    tab.appendChild(this._tabText);
+    tab.appendChild(removeButton);
+
+    this._tab = tab;
+};
+
+Response.prototype._handleRemove = function() {
+    $(this._container).remove();
+    $(this._tab).remove();
+
+    this.removeCallback(this);
+};
+
 Response.prototype.show = function() {
-    $(this.tab).tab('show');
+    $(this._tab).tab('show');
 };
 
 Response.prototype._handleFormatChange = function(target) {
@@ -102,7 +149,7 @@ Response.prototype._setResponseBodyMode = function(format) {
 Response.prototype._updateTabTitle = function() {
     var statusCode = this._statusCode.value;
     var format = this._format.value;
-    this.tab.innerHTML = 'Response (' + statusCode + ' - ' + format + ')';
+    this._tabText.innerHTML = 'Response (' + statusCode + ' - ' + format + ') ';
 };
 
 Response.prototype.setDefaults = function(data) {
@@ -116,9 +163,9 @@ Response.prototype.setDefaults = function(data) {
 
 Response.prototype.build = function(supportedFormats) {
 
-    var container = document.createElement('div');
-    container.className = 'tab-pane';
-    container.id = 'tab' + this._id;
+    this._container = document.createElement('div');
+    this._container.className = 'tab-pane';
+    this._container.id = 'tab' + this._id;
 
     var context = this;
 
@@ -140,7 +187,7 @@ Response.prototype.build = function(supportedFormats) {
     statusCodeContainer.appendChild(label);
     statusCodeContainer.appendChild(this._statusCode);
 
-    container.appendChild(statusCodeContainer);
+    this._container.appendChild(statusCodeContainer);
 
     // format
     var formatContainer = document.createElement('div');
@@ -170,7 +217,7 @@ Response.prototype.build = function(supportedFormats) {
     formatContainer.appendChild(label);
     formatContainer.appendChild(this._format);
 
-    container.appendChild(formatContainer);
+    this._container.appendChild(formatContainer);
 
     // response body
     var responseBodyContainer = document.createElement('div');
@@ -185,7 +232,7 @@ Response.prototype.build = function(supportedFormats) {
     responseBodyContainer.appendChild(label);
     responseBodyContainer.appendChild(responseBodyEditorDiv);
 
-    container.appendChild(responseBodyContainer);
+    this._container.appendChild(responseBodyContainer);
 
     // response headers
     var responseHeadersContainer = document.createElement('div');
@@ -199,9 +246,9 @@ Response.prototype.build = function(supportedFormats) {
     responseHeadersContainer.appendChild(label);
     responseHeadersContainer.appendChild(responseHeadersEditorDiv);
 
-    container.appendChild(responseHeadersContainer);
+    this._container.appendChild(responseHeadersContainer);
 
-    return container;
+    return this._container;
 };
 
 Response.prototype.getData = function() {

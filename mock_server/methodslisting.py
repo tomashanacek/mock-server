@@ -52,7 +52,7 @@ class ResourcesLoader(MethodsLoader):
 
         url_path = UrlPath(get_url_path(item[0][len(self.api_dir):]))
 
-        for current_file in item[2]:
+        for current_file in sorted(item[2]):
             m = c.match(current_file)
             if m is None:
                 continue

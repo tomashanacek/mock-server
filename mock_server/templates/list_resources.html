@@ -16,7 +16,7 @@
         {% if number_of_methods < MAX_NUMBER_OF_METHODS %}
         {% for type, path in paths %}
           {% if type == "rest" %}
-          <li class=""><a href="#{{path.path}}"><i class="icon-chevron-right"></i> {{path.path}}</a></li>
+          <li class=""><a href="#{{path.path}}"><i class="icon-chevron-right"></i> /{{path.path}}</a></li>
           {% else %}
           <li class=""><a href="#xmlrpc-{{path["name"]}}"><i class="icon-chevron-right"></i> RPC/{{path["name"]}}</a></li>
           {% end %}

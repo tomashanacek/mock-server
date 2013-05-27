@@ -1,0 +1,1 @@
+{"upstream-server": "http://localhost:8089", "resources": {"GET-hello": {"category": "", "upstream-server": true}}}

@@ -4,4 +4,5 @@
 import unittest
 from mock_server.tests.all import *
 
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()

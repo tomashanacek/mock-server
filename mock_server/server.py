@@ -387,14 +387,17 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
     def get(self):
         url_path = self.get_argument("url_path", "")
-        method = self.get_argument("method", "GET")
+        method = self.get_argument("method", None)
 
         method_file = ResourceMethod(
             self.settings["dir"], url_path, method)
         method_file.load_responses()
         method_file.load_description()
 
-        category = self.application.data.get_category(method_file.id)
+        if method is None:
+            category = ""
+        else:
+            category = self.application.data.get_category(method_file.id)
 
         self.render(
             "create_resource.html",

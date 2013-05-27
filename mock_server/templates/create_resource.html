@@ -25,7 +25,7 @@ class="create-resource"
 
         <div class="control-group">
             <label for="url_path">Url path</label>
-            <input type="text" name="url_path" id="url_path" value="{% if protocol == 'rest' %}{{method_file.url_path}}{% end %}" class="input-xlarge" required>
+            <input type="text" name="url_path" id="url_path" value="{% if protocol == 'rest' %}{{method_file.url_path}}{% end %}" class="input-xlarge" required placeholder="Example: user/jonh">
         </div>
 
         <div class="control-group">
@@ -39,7 +39,7 @@ class="create-resource"
 
         <div class="control-group">
             <label for="category">Category</label>
-            <input type="text" name="category" id="category" autocomplete="off" value="{{category}}" class="input-xlarge">
+            <input type="text" name="category" id="category" autocomplete="off" value="{{category}}" class="input-xlarge" placeholder="Example: Users">
         </div>
 
         <div class="tabbable" id="responses">
@@ -71,12 +71,12 @@ class="create-resource"
 
             <div class="control-group">
                 <label for="method_name">Method name</label>
-                <input type="text" name="method_name" id="method_name" value="{% if protocol == "rpc" %}{{method_file.name}}{% end %}" required>
+                <input type="text" name="method_name" id="method_name" value="{% if protocol == "rpc" %}{{method_file.name}}{% end %}" required class="input-xlarge" placeholder="Example: examples.getName">
             </div>
 
             <div class="control-group">
                 <label for="rpc_category">Category</label>
-                <input type="text" name="category" id="rpc_category" autocomplete="off" value="{{category}}">
+                <input type="text" name="category" id="rpc_category" autocomplete="off" value="{{category}}" class="input-xlarge" placeholder="Example: Users">
             </div>
 
             <div class="control-group">
@@ -110,6 +110,7 @@ class="create-resource"
 <script src="/__static/js/create-rest.js" type="text/javascript" charset="utf-8"></script>
 <script type="text/javascript">
 
+{% if protocol == "rest" %}
 var manager = new CreateRestMethodManager({{SUPPORTED_FORMATS}});
 {% for i, response in enumerate(method_file.responses) %}
 var response = manager.addResponse();
@@ -122,6 +123,7 @@ response.show();
 {% if not method_file.responses %}
 var response = manager.addResponse();
 response.show();
+{% end %}
 {% end %}
 
 {% if protocol == "rpc" and method_file.method_response %}

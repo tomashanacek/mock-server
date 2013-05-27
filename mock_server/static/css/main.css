@@ -96,7 +96,7 @@ body {
   border-bottom: 1px dotted #999999;
 }
 
-#jsonrpc {
+.label-dotted, #jsonrpc {
   cursor: help;
   border-bottom: 1px dotted #999999;
 }
@@ -182,4 +182,9 @@ body.create-resource { background-color: #f5f5f5; }
     -webkit-border-top-right-radius: 0px;
     -moz-border-top-right-radius: 0px;
     border-top-right-radius: 0px;
+}
+
+#response-tabs .icon-remove {
+  cursor: pointer;
+  margin-left: 5px;
 }

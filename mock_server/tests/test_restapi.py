@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import os
+import subprocess
+import time
 
 import tornado.testing
 from mock_server.server import Application
@@ -8,10 +10,23 @@ from mock_server.server import Application
 
 class TestRestApi(tornado.testing.AsyncHTTPTestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls._upstream_server = subprocess.Popen(
+            "mock_server/tests/upstream_server.py")
+        time.sleep(1 / 2.0)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._upstream_server.terminate()
+
     def get_app(self):
         return Application(7777, "localhost",
                            os.path.join(os.path.dirname(__file__), "api/"),
                            False, "application.json")
+
+    def get_new_ioloop(self):
+        return tornado.ioloop.IOLoop.instance()
 
     def test_list_users(self):
         response = self.fetch("/user")
@@ -35,7 +50,7 @@ class TestRestApi(tornado.testing.AsyncHTTPTestCase):
         self.assertEqual(
             response.body,
             'Api does\'t exists, '
-            '<a href="/__manage/create?url_path=user/'
+            '<a href="/__manage/create?url_path=/user/'
             'john/data&method=GET&status_code=200&format=json">'
             'create resource method</a>')
 
@@ -44,3 +59,9 @@ class TestRestApi(tornado.testing.AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertTrue("bart" in response.body)
+
+    def test_hello_on_upstream_server(self):
+        response = self.fetch("/hello")
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(response.body, "Hello from upstream server")
