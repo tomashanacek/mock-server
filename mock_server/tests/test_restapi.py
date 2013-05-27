@@ -14,7 +14,7 @@ class TestRestApi(tornado.testing.AsyncHTTPTestCase):
     def setUpClass(cls):
         cls._upstream_server = subprocess.Popen(
             "mock_server/tests/upstream_server.py")
-        time.sleep(1 / 2.0)
+        time.sleep(2 / 10.0)
 
     @classmethod
     def tearDownClass(cls):
