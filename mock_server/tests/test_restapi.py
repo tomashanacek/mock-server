@@ -10,15 +10,15 @@ from mock_server.server import Application
 
 class TestRestApi(tornado.testing.AsyncHTTPTestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls._upstream_server = subprocess.Popen(
+    def setUp(self):
+        super(TestRestApi, self).setUp()
+        self._upstream_server = subprocess.Popen(
             "mock_server/tests/upstream_server.py")
         time.sleep(2 / 10.0)
 
-    @classmethod
-    def tearDownClass(cls):
-        cls._upstream_server.terminate()
+    def tearDown(self):
+        super(TestRestApi, self).tearDown()
+        self._upstream_server.terminate()
 
     def get_app(self):
         return Application(7777, "localhost",
