@@ -26,10 +26,20 @@
           <a class="brand" href="#">Mock Server</a>
           <div class="nav-collapse collapse">
             <ul class="nav">
+              {% if current_user %}
               <li{% if active_page == "create_resource" %} class="active"{% end %}><a href="/__manage/create">Create</a></li>
+              {% end %}
               <li{% if active_page == "list_resources" %} class="active"{% end %}><a href="/__manage">Resources</a></li>
               <li{% if active_page == "resources_logs" %} class="active"{% end %}><a href="/__manage/logs">Access Log</a></li>
+              {% if current_user %}
+              <li{% if active_page == "settings" %} class="active"{% end %}><a href="/__manage/settings">Settings</a></li>
+              {% end %}
             </ul>
+            {% if current_user and handler.api_data.password %}
+            <p class="navbar-text pull-right">
+              <a href="/__manage/logout" class="navbar-link">Logout</a>
+            </p>
+            {% end %}
           </div><!--/.nav-collapse -->
         </div>
       </div>
@@ -43,9 +53,9 @@
       </div><!--/row-->
     </div><!--/.fluid-container-->
 
-    <script src="/__static/vendor/jquery/js/jquery.min.js"></script>
-    <script src="/__static/vendor/bootstrap/js/bootstrap.min.js"></script>
-    <script src="/__static/vendor/prettify/js/prettify.js"></script>
+    <script src="/__static/vendor/jquery/js/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/__static/vendor/bootstrap/js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/__static/vendor/prettify/js/prettify.js" type="text/javascript" charset="utf-8"></script>
 
     {% block javascripts %}{% end %}
   </body>

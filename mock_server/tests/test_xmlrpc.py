@@ -3,7 +3,7 @@
 import os
 
 import tornado.testing
-from mock_server.server import Application
+from mock_server.application import Application
 
 
 class TestXMLRPC(tornado.testing.AsyncHTTPTestCase):

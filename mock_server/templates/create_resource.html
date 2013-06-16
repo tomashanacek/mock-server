@@ -138,8 +138,8 @@ var converter2 = new Markdown.Converter();
 var editor2 = new Markdown.Editor(converter2, "-rpc");
 editor2.run();
 
-$("#category").typeahead({source: {%raw json_encode(list(handler.application.data.categories))%}})
+$("#category").typeahead({source: {%raw json_encode(list(handler.api_data.categories))%}})
 
-$("#rpc_category").typeahead({source: {%raw json_encode(list(handler.application.data.categories))%}})
+$("#rpc_category").typeahead({source: {%raw json_encode(list(handler.api_data.categories))%}})
 </script>
 {% end %}

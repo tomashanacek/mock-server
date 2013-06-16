@@ -161,7 +161,7 @@ dd {
 
 body.create-resource { background-color: #f5f5f5; }
 
-#api-selection, #rest-form, #rpc-form {
+#api-selection, #rest-form, #rpc-form, #settings-form {
     max-width: 1000px;
     padding: 19px 29px 29px;
     margin: 0 auto 20px;
@@ -187,4 +187,8 @@ body.create-resource { background-color: #f5f5f5; }
 #response-tabs .icon-remove {
   cursor: pointer;
   margin-left: 5px;
+}
+
+.mt40 {
+  margin-top: 40px;
 }

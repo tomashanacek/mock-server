@@ -39,15 +39,6 @@
     </div>
     {% end %}{% end %}
 
-    <form class="form-inline" method="post" action="/__manage/upstream-server">
-      <fieldset>
-        <legend>Upstream server</legend>
-        {% module xsrf_form_html() %}
-        <input type="url" class="input-big" placeholder="Upstream server" name="upstream_server" id="upstream_server" value="{{application_data.upstream_server}}">
-        <button type="submit" class="btn">Save</button>
-      </fieldset>
-    </form>
-
     {% if some_method %}
 
     {% for category, paths in categories.iteritems() %}{% if paths %}
@@ -65,7 +56,7 @@
           {% end %}
         </ul>
         <ul class="nav pull-right">
-            {% if application_data.upstream_server %}
+            {% if handler.api_data.upstream_server and current_user %}
             <li>
                 <form class="form-inline" method="post" action="/__manage/resource/{{resource.method}}-{{resource.url_path}}">
                   {% module xsrf_form_html() %}
@@ -75,6 +66,7 @@
                 </form>
             </li>
             {% end %}
+            {% if current_user %}
             <li class="divider-vertical"></li>
             <li class="dropdown">
               <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
@@ -85,6 +77,7 @@
                 </li>
               </ul>
             </li>
+            {% end %}
         </ul>
       </div>
       <div class="tab-content">
@@ -119,7 +112,7 @@
             {% end %}
           </ul>
           <ul class="nav pull-right">
-              {% if application_data.upstream_server %}
+              {% if handler.api_data.upstream_server and current_user %}
               <li>
                   <form class="form-inline" method="post" action="/__manage/rpc/{{path["name"]}}">
                     {% module xsrf_form_html() %}
@@ -129,16 +122,18 @@
                   </form>
               </li>
               {% end %}
+              {% if current_user %}
               <li class="divider-vertical"></li>
               <li class="dropdown">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                <li><a href="/__manage/create/rpc?method_name={{path["name"]}}">Edit</a></li>
-                <li>
-                    <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{path["name"]}} method?')) { this.href = '/__manage/rpc/{{path["name"]}}?_method=delete'; } else { return false; }">Delete</a>
-                </li>
-              </ul>
-            </li>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Actions <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                  <li><a href="/__manage/create/rpc?method_name={{path["name"]}}">Edit</a></li>
+                  <li>
+                      <a href="javascript:void(0)" onclick="if (confirm('Do you really want to delete {{path["name"]}} method?')) { this.href = '/__manage/rpc/{{path["name"]}}?_method=delete'; } else { return false; }">Delete</a>
+                  </li>
+                </ul>
+              </li>
+              {% end %}
           </ul>
         </div>
         <div class="tab-content">

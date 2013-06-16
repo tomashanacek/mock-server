@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+
+{% block header %}
+{% set active_page = "settings" %}
+{% end %}
+
+{% block bodyattrs %}
+class="create-resource"
+{% end %}
+
+{% block body %}
+<div class="span12">
+
+    <form class="form-horizontal" id="settings-form" method="post" action="/__manage/settings">
+
+        {% module xsrf_form_html() %}
+
+        <fieldset>
+
+        <legend>Basic settings</legend>
+
+        <div class="control-group">
+            <label class="control-label" for="upstream_server">Upstream  server (url)</label>
+            <div class="controls">
+                <input type="url" class="input-big" name="upstream_server" id="upstream_server" value="{{handler.api_data.upstream_server}}">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label" for="password">Manage password</label>
+            <div class="controls">
+                <input type="password" class="input-big" name="password" id="password" autocomplete="off">
+            </div>
+        </div>
+
+        </fieldset>
+
+        <fieldset class="mt40">
+
+        <legend>API authentication (HTTP Basic authentication)</legend>
+
+        <div class="control-group">
+            <label class="control-label" for="http_username">Username</label>
+            <div class="controls">
+                <input type="text" class="input-big" name="http_username" id="http_username" value="{{handler.api_data.http_username}}">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label class="control-label" for="http_password">Password</label>
+            <div class="controls">
+                <input type="password" class="input-big" name="http_password" id="http_password" autocomplete="off">
+            </div>
+        </div>
+
+        </fieldset>
+
+        <div class="control-group" style="margin-top:30px;">
+            <div class="controls">
+                <button type="submit" class="btn btn-primary">Save settings</button>
+            </div>
+        </div>
+
+    </form>
+
+</div><!--/span-->
+{% end %}

@@ -10,9 +10,16 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+from string import ascii_letters, digits
+from random import choice
 from tornado.escape import utf8
 from util import read_file
 from data import SUPPORTED_METHODS
+
+
+def gencryptsalt():
+    symbols = ascii_letters + digits
+    return choice(symbols) + choice(symbols)
 
 
 def get_url_path(file_path):
@@ -35,12 +42,15 @@ def get_file_path(url_path):
     return "/".join(file_path)
 
 
-class ApplicationData(object):
+class ApiData(object):
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self, model):
+        self._model = model
         self.data = {}
         self._upstream_server = ""
+        self.password = ""
+        self.http_username = ""
+        self.http_password = ""
         self.resources = {}
         self.categories = set()
 
@@ -56,19 +66,15 @@ class ApplicationData(object):
             self._upstream_server = value
 
     def load(self):
-        data = read_file(self.filename)
+        self.data = self._model.load()
 
-        if data:
-            try:
-                self.data = json.loads(data)
+        self.upstream_server = self.data.get("upstream-server", "")
+        self.password = self.data.get("password", "")
+        self.resources = self.data.get("resources", self.resources)
+        self.http_username = self.data.get("http_username", "")
+        self.http_password = self.data.get("http_password", "")
 
-                self.upstream_server = self.data.get("upstream-server", "")
-                self.resources = self.data.get("resources", self.resources)
-
-                self.load_categories()
-
-            except ValueError:
-                pass
+        self.load_categories()
 
     def load_categories(self):
         if not self.resources:
@@ -85,9 +91,14 @@ class ApplicationData(object):
             self.data["resources"] = self.resources
         if self.upstream_server:
             self.data["upstream-server"] = self.upstream_server
+        if self.password:
+            self.data["password"] = self.password
+        if self.http_username:
+            self.data["http_username"] = self.http_username
+        if self.http_password:
+            self.data["http_password"] = self.http_password
 
-        with open(self.filename, "w") as f:
-            f.write(json.dumps(self.data))
+        self._model.save(self.data)
 
     def get_category(self, resource):
         return self._get_resource_attribute(resource, "category")

@@ -2,14 +2,17 @@
 
 import os
 import re
+import bcrypt
 import datetime
-
 import tornado.web
 
+from crypt import crypt
+from tornado import gen
 from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
 from data import SUPPORTED_METHODS
 from tornado_flash_message_mixin import FlashMessageMixin
-from model import ApplicationData, ResourceMethod, RPCMethod
+from tornado_http_auth_basic_mixin import HttpAuthBasicMixin
+from model import ResourceMethod, RPCMethod, gencryptsalt
 
 from methodslisting import ResourcesLoader, RPCMethodsLoader
 from validators import validate_url
@@ -24,7 +27,6 @@ try:
 except ImportError:
     jsonrpc_available = False
 
-
 try:
     import fastrpcapi
     fastrpc_available = True
@@ -32,42 +34,20 @@ except ImportError:
     fastrpc_available = False
 
 
-class Application(tornado.web.Application):
-    def __init__(self, port, address, api_dir, debug, application_data):
-
-        self.data = ApplicationData(os.path.join(api_dir, application_data))
-        self.data.load()
-
-        supported_formats = "|".join(
-            map(lambda x: ".%s" % x, SUPPORTED_FORMATS.keys()))
-        handlers = [
-            (r"/__manage/resource/(.*)", ResourceMethodHandler),
-            (r"/__manage/rpc/(.*)", RPCMethodHandler),
-            (r"/__manage/upstream-server", UpstreamServerHandler),
-            (r"/__manage/logs", ResourcesLogsHandler),
-            (r"/__manage/create/rpc", CreateRPCMethodHandler),
-            (r"/__manage/create", CreateResourceMethodHandler),
-            (r"/__manage", ListResourcesHandler),
-            (r"/%s" % RPCHandler.PATH, RPCHandler),
-            (r"/(.*)(%s)" % supported_formats, MainHandler),
-            (r"/(.*)", MainHandler),
-        ]
-        settings = dict(
-            debug=debug,
-            port=port,
-            address=address,
-            dir=api_dir,
-            jsonrpc=jsonrpc_available,
-            fastrpc=fastrpc_available,
-            template_path=os.path.join(os.path.dirname(__file__), "templates"),
-            static_path=os.path.join(os.path.dirname(__file__), "static"),
-            static_url_prefix="/__static/",
-            cookie_secret="__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__",
-        )
-        super(Application, self).__init__(handlers, **settings)
-
-
 class BaseHandler(tornado.web.RequestHandler):
+
+    def get_current_user(self):
+        if self.api_data.password:
+            return self.get_secure_cookie("user")
+        else:
+            return "Password is not required"
+
+    def prepare(self):
+        api_settings = self.application.api_settings_class(
+            self.settings, self.request)
+
+        self.api_dir = api_settings.api_dir
+        self.api_data = api_settings.api_data
 
     def set_content_type(self, content_type, charset="utf-8"):
         self.set_header("Content-Type",
@@ -99,7 +79,7 @@ class BaseHandler(tornado.web.RequestHandler):
     @property
     def log_request_name(self):
         return os.path.join(
-            self.settings["dir"], "access-%s.log" %
+            self.api_dir, "access-%s.log" %
             datetime.datetime.now().strftime("%Y-%m-%d"))
 
     def _upstream_server_callback(self, response):
@@ -109,7 +89,29 @@ class BaseHandler(tornado.web.RequestHandler):
         self.finish()
 
 
-class MainHandler(BaseHandler):
+class MainHandler(BaseHandler, HttpAuthBasicMixin):
+
+    def check_auth(self, http_username, http_password):
+        username = self.api_data.http_username
+        password = self.api_data.http_password
+
+        if username:
+            return (username == http_username and
+                    password == crypt(http_password, password))
+
+        return True
+
+    def authorize(self):
+        credentials = self.authorization()
+
+        if not credentials or not self.check_auth(*credentials):
+            self.authenticate()
+
+    def prepare(self):
+        super(MainHandler, self).prepare()
+
+        if self.api_data.http_username:
+            self.authorize()
 
     @tornado.web.asynchronous
     def head(self, path, format=DEFAULT_FORMAT):
@@ -159,7 +161,7 @@ class MainHandler(BaseHandler):
 
     def _handle_request_on_upstream(self):
         provider = rest.UpstreamServerProvider(
-            self.application.data.upstream_server)
+            self.api_data.upstream_server)
 
         provider({
             "uri": self.request.uri,
@@ -181,20 +183,20 @@ class MainHandler(BaseHandler):
         self.status_code = int(self.get_argument("__statusCode", 200))
 
         # upstream server
-        upstream_server = self.application.data.get_upstream_server(
+        upstream_server = self.api_data.get_upstream_server(
             "%s-%s" % (method, url_path))
 
-        if self.application.data.upstream_server and upstream_server:
+        if self.api_data.upstream_server and upstream_server:
             return self._handle_request_on_upstream()
 
         # mock
-        provider = rest.FilesMockProvider(self.settings["dir"])
+        provider = rest.FilesMockProvider(self.api_dir)
 
         response = rest.resolve_request(
             provider, method, url_path, self.status_code, self.format)
 
         if provider.error:
-            if self.application.data.upstream_server:
+            if self.api_data.upstream_server:
                 return self._handle_request_on_upstream()
 
         # response
@@ -260,13 +262,13 @@ class RPCHandler(BaseHandler):
         self._stream.read_until("\r\n", self._on_chunk_length)
 
     def _is_jsonrpc(self, content_type):
-        if self.settings["jsonrpc"] and content_type == "application/json":
+        if jsonrpc_available and content_type == "application/json":
             return True
         else:
             return False
 
     def _is_fastrpc(self, content_type):
-        if self.settings["fastrpc"] and content_type == "application/x-frpc":
+        if fastrpc_available and content_type == "application/x-frpc":
             return True
         else:
             return False
@@ -288,7 +290,7 @@ class RPCHandler(BaseHandler):
 
     def _handle_request_on_upstream(self, request_data):
         provider = self.rpclib.UpstreamServerProvider(
-            self.application.data.upstream_server)
+            self.api_data.upstream_server)
 
         if isinstance(provider, fastrpcapi.UpstreamServerProvider):
             provider(request_data, self._upstream_server_callback)
@@ -309,17 +311,17 @@ class RPCHandler(BaseHandler):
         self.method_name = method_name
 
         # upstream server
-        upstream_server = self.application.data.get_rpc_upstream_server(
+        upstream_server = self.api_data.get_rpc_upstream_server(
             method_name)
 
-        if self.application.data.upstream_server and upstream_server:
+        if self.api_data.upstream_server and upstream_server:
             return self._handle_request_on_upstream(request_data)
 
         # mock
-        provider = self.rpclib.FilesMockProvider(self.settings["dir"])
+        provider = self.rpclib.FilesMockProvider(self.api_dir)
         response = provider(method_name=method_name)
 
-        if provider.error and self.application.data.upstream_server:
+        if provider.error and self.api_data.upstream_server:
             return self._handle_request_on_upstream(request_data)
 
         self.set_headers(response.headers)
@@ -338,18 +340,18 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
     def get(self):
         # load categories
         categories, methods_with_category = \
-            self.application.data.list_categories()
+            self.api_data.list_categories()
 
         # load resources
         resources_loader = ResourcesLoader(
-            self.settings["dir"], self.application.data,
+            self.api_dir, self.api_data,
             SUPPORTED_METHODS)
         paths = resources_loader.load()
 
         # load rpc methods
         rpc_methods_loader = RPCMethodsLoader(
-            self.settings["dir"], self.application.data,
-            self.settings["jsonrpc"])
+            self.api_dir, self.api_data,
+            jsonrpc_available)
         rpc_methods = rpc_methods_loader.load(RPCHandler.PATH)
 
         # add resources to category
@@ -376,7 +378,6 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
         # render to response
         self.render("list_resources.html", categories=categories,
-                    application_data=self.application.data,
                     number_of_methods=len(methods_with_category),
                     some_method=bool(paths or rpc_methods),
                     flash_messages=self.get_flash_messages(
@@ -385,26 +386,28 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
 class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
+    @tornado.web.authenticated
     def get(self):
         url_path = self.get_argument("url_path", "")
         method = self.get_argument("method", None)
 
         method_file = ResourceMethod(
-            self.settings["dir"], url_path, method)
+            self.api_dir, url_path, method)
         method_file.load_responses()
         method_file.load_description()
 
         if method is None:
             category = ""
         else:
-            category = self.application.data.get_category(method_file.id)
+            category = self.api_data.get_category(method_file.id)
 
         self.render(
             "create_resource.html",
             protocol="rest", category=category, method_file=method_file,
             SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
-            jsonrpc=self.settings["jsonrpc"])
+            jsonrpc=jsonrpc_available)
 
+    @tornado.web.authenticated
     def post(self):
         # check xsrf cookie
         self.check_xsrf_cookie()
@@ -416,7 +419,7 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
         for response in data["responses"]:
             # save resource
             method_file = ResourceMethod(
-                self.settings["dir"], data["url_path"], data["method"])
+                self.api_dir, data["url_path"], data["method"])
             method_file.description = data["description"]
             method_file.add_response(
                 response["status_code"], response["format"],
@@ -424,7 +427,7 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
             method_file.save()
 
             # add resource to category
-            self.application.data.save_category(
+            self.api_data.save_category(
                 method_file.id, data["category"])
 
         self.set_flash_message(
@@ -435,26 +438,30 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
 
 class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
+
+    @tornado.web.authenticated
     def get(self):
         method_name = self.get_argument("method_name", "")
 
         method_file = RPCMethod(
-            os.path.join(self.settings["dir"], RPCHandler.PATH))
+            os.path.join(self.api_dir, RPCHandler.PATH))
         method_file.load(method_name)
         method_file.load_description()
 
-        category = self.application.data.get_rpc_category(method_name)
+        category = self.api_data.get_rpc_category(method_name)
 
         self.render(
             "create_resource.html",
             protocol="rpc", category=category, method_file=method_file,
             SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
-            jsonrpc=self.settings["jsonrpc"])
+            jsonrpc=jsonrpc_available)
 
+    @tornado.web.authenticated
     def post(self):
-
+        # check xsrf cookie
         self.check_xsrf_cookie()
 
+        # get data from request
         method_name = self.get_argument("method_name")
         method_response = self.get_argument("method_response")
         category = self.get_argument("category", "")
@@ -462,12 +469,12 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
 
         # save method
         rpc_file = RPCMethod(
-            os.path.join(self.settings["dir"], RPCHandler.PATH))
+            os.path.join(self.api_dir, RPCHandler.PATH))
         rpc_file.description = description
         rpc_file.save(method_name, method_response)
 
         # add method to category
-        self.application.data.save_category(
+        self.api_data.save_category(
             "RPC-%s" % method_name, category)
 
         self.set_flash_message(
@@ -476,28 +483,9 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
         self.redirect("/__manage")
 
 
-class UpstreamServerHandler(BaseHandler, FlashMessageMixin):
-    def post(self):
-        self.check_xsrf_cookie()
-
-        upstream_server = self.get_argument("upstream_server", "")
-
-        if upstream_server and not validate_url(upstream_server):
-            self.set_flash_message(
-                "error",
-                "Url is not valid.")
-            return self.redirect("/__manage")
-
-        self.application.data.upstream_server = upstream_server
-        self.application.data.save()
-
-        self.set_flash_message(
-            "success",
-            "Upstream server has been successfully saved.")
-        self.redirect("/__manage")
-
-
 class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
+
+    @tornado.web.authenticated
     def get(self, resource):
         _method = self.get_argument("_method", "get")
         if _method == "delete":
@@ -505,12 +493,13 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
         raise tornado.web.HTTPError(405)
 
+    @tornado.web.authenticated
     def post(self, resource):
         self.check_xsrf_cookie()
 
         upstream_server = bool(self.get_argument("upstream_server", None))
 
-        self.application.data.save_method_upstream_server(
+        self.api_data.save_method_upstream_server(
             resource, upstream_server)
 
         self.set_flash_message(
@@ -520,6 +509,7 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
         self.redirect("/__manage")
 
+    @tornado.web.authenticated
     def delete(self, resource):
         # get http method, status and url path
         c = re.compile(r"(%s)-(.*)" %
@@ -528,10 +518,10 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
         method, url_path = m.groups()
 
         # delete resource method
-        method_file = ResourceMethod(self.settings["dir"], url_path, method)
+        method_file = ResourceMethod(self.api_dir, url_path, method)
         method_file.delete()
 
-        self.application.data.delete_resource(resource)
+        self.api_data.delete_resource(resource)
 
         # redirect
         self.set_flash_message(
@@ -542,6 +532,8 @@ class ResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
 
 class RPCMethodHandler(BaseHandler, FlashMessageMixin):
+
+    @tornado.web.authenticated
     def get(self, method_name):
         _method = self.get_argument("_method", "get")
         if _method == "delete":
@@ -549,12 +541,13 @@ class RPCMethodHandler(BaseHandler, FlashMessageMixin):
 
         raise tornado.web.HTTPError(405)
 
+    @tornado.web.authenticated
     def post(self, method_name):
         self.check_xsrf_cookie()
 
         upstream_server = bool(self.get_argument("upstream_server", None))
 
-        self.application.data.save_method_upstream_server(
+        self.api_data.save_method_upstream_server(
             "RPC-%s" % method_name, upstream_server)
 
         self.set_flash_message(
@@ -564,15 +557,95 @@ class RPCMethodHandler(BaseHandler, FlashMessageMixin):
 
         self.redirect("/__manage")
 
+    @tornado.web.authenticated
     def delete(self, method_name):
         rpc_file = RPCMethod(
-            os.path.join(self.settings["dir"], RPCHandler.PATH))
+            os.path.join(self.api_dir, RPCHandler.PATH))
         rpc_file.delete(method_name)
 
-        self.application.data.delete_resource("RPC-%s" % method_name)
+        self.api_data.delete_resource("RPC-%s" % method_name)
 
         self.set_flash_message(
             "success",
             "RPC method has been successfully deleted.")
 
         self.redirect("/__manage")
+
+
+class LoginHandler(BaseHandler, FlashMessageMixin):
+    def get(self):
+        self.render("login.html",
+                    flash_messages=self.get_flash_messages(
+                        ("success", "error")))
+
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def post(self):
+        self.check_xsrf_cookie()
+
+        password = self.get_argument("password")
+
+        password_hash = yield self.application.pool.submit(
+            bcrypt.hashpw, password, self.api_data.password)
+
+        if password_hash == self.api_data.password:
+            self.set_secure_cookie("user", self.api_dir)
+            self.redirect(self.get_argument("next", "/__manage"))
+        else:
+            self.set_flash_message("error", "Password is not valid.")
+            self.redirect("/__manage/login?next=%s" %
+                          self.get_argument("next", "/__manage"))
+
+
+class LogoutHandler(BaseHandler):
+    def get(self):
+        self.clear_cookie("user")
+        self.redirect(self.get_argument("next", "/"))
+
+
+class SettingsHandler(BaseHandler, FlashMessageMixin):
+
+    @tornado.web.authenticated
+    def get(self):
+        self.render("settings.html")
+
+    @tornado.web.authenticated
+    @tornado.web.asynchronous
+    @gen.coroutine
+    def post(self):
+        self.check_xsrf_cookie()
+
+        upstream_server = self.get_argument("upstream_server", "")
+        password = self.get_argument("password", "")
+        http_username = self.get_argument("http_username", "")
+        http_password = self.get_argument("http_password", "")
+
+        if upstream_server and not validate_url(upstream_server):
+            self.set_flash_message(
+                "error",
+                "Url is not valid.")
+            self.redirect("/__manage")
+        else:
+            self.api_data.upstream_server = upstream_server
+            self.api_data.http_username = http_username
+
+            if password:
+                password_hash = yield self.application.pool.submit(
+                    bcrypt.hashpw, password, bcrypt.gensalt())
+
+                self.api_data.password = password_hash
+
+            if not http_username:
+                self.api_data.http_password = ""
+            elif http_password:
+                http_password_hash = yield self.application.pool.submit(
+                    crypt, http_password, gencryptsalt())
+
+                self.api_data.http_password = http_password_hash
+
+            self.api_data.save()
+
+            self.set_flash_message(
+                "success",
+                "Settings has been successfully saved.")
+            self.redirect("/__manage")

@@ -38,3 +38,4 @@ nosetests.xml
 *.swp
 
 *.log
+docs/_build

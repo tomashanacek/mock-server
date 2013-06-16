@@ -41,7 +41,7 @@ def main():
         os.sys.path.insert(0, parentdir)
 
     try:
-        from mock_server.server import Application
+        from mock_server.application import Application
     except ImportError, e:
         if options.debug:
             raise
