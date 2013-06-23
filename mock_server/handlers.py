@@ -675,7 +675,7 @@ class TodoHandler(BaseHandler):
         value = " %s" % data["value"].strip()
         todo = "%s%s" % ("[x]" if data["checked"] else "[ ]", value)
         method_file.description = re.sub(
-            r"\[( |x)\]%s" % value, todo, method_file.description)
+            r"\[( |x)\]%s" % re.escape(value), todo, method_file.description)
 
         # save description
         method_file.save_description()
