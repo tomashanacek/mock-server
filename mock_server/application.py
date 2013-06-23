@@ -26,6 +26,7 @@ class Application(tornado.web.Application):
             (r"/__manage/login", handlers.LoginHandler),
             (r"/__manage/logout", handlers.LogoutHandler),
             (r"/__manage/settings", handlers.SettingsHandler),
+            (r"/__manage/todo", handlers.TodoHandler),
             (r"/__manage", handlers.ListResourcesHandler),
             (r"/%s" % handlers.RPCHandler.PATH, handlers.RPCHandler),
             (r"/(.*)(%s)" % supported_formats, handlers.MainHandler),

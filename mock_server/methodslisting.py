@@ -84,7 +84,7 @@ class ResourcesLoader(MethodsLoader):
 
         # resource description
         resource_description_path = os.path.join(
-            file_path, "%s_%s_doc.md" % (method, 200))
+            file_path, "%s_doc.md" % method)
         resource_description = read_file(resource_description_path)
 
         if resource_description:
@@ -127,7 +127,7 @@ class Resource(object):
 
     @description.setter
     def description(self, value):
-        self._description = markdown(value)
+        self._description = markdown(value, protocol="rest", ref_id=self.id)
 
 
 class ResourceFormatFile(object):
@@ -166,7 +166,8 @@ class RPCMethodsLoader(MethodsLoader):
                 methods_dir, "%s_doc.md" % method)
             description = read_file(description_path)
             if description:
-                description = markdown(description)
+                description = markdown(
+                    description, protocol="rpc", ref_id=method)
 
             # upstream server
             upstream_server = self.application_data.get_rpc_upstream_server(

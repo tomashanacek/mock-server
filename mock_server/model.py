@@ -250,7 +250,7 @@ class ResourceMethod(BaseMethod):
         self.description = read_file(
             os.path.join(
                 self.resource_dir,
-                "%s_%s_doc.md" % (self.method, 200)))
+                "%s_doc.md" % self.method))
 
     def add_response(self, status_code, format, body, headers):
         self.responses.append({
@@ -270,10 +270,13 @@ class ResourceMethod(BaseMethod):
 
         # write description
         if self.description:
-            description_path = os.path.join(
-                self.resource_dir, "%s_doc.md" % self.method)
-            with open(description_path, "w") as f:
-                f.write(utf8(self.description))
+            self.save_description()
+
+    def save_description(self):
+        description_path = os.path.join(
+            self.resource_dir, "%s_doc.md" % self.method)
+        with open(description_path, "w") as f:
+            f.write(utf8(self.description))
 
     def save_response(self, status_code, format, body, headers):
         content_path = os.path.join(
@@ -309,47 +312,50 @@ class ResourceMethod(BaseMethod):
         # delete description
         description_path = os.path.join(
             self.resource_dir,
-            "%s_%s_doc.md" % (self.method, 200))
+            "%s_doc.md" % self.method)
 
         self._delete_file(description_path)
 
 
 class RPCMethod(BaseMethod):
 
-    def __init__(self, methods_dir):
+    def __init__(self, methods_dir, name):
         super(RPCMethod, self).__init__()
 
         self.methods_dir = methods_dir
-        self.name = ""
+        self.name = name
         self.description = ""
 
-    def save(self, name, response):
+    def save(self, response):
         if not os.path.exists(self.methods_dir):
             os.makedirs(self.methods_dir)
 
         # write description
         if self.description:
-            description_path = os.path.join(
-                self.methods_dir,
-                "%s_doc.md" % name)
-            with open(description_path, "w") as f:
-                f.write(utf8(self.description))
+            self.save_description()
 
         # write method
-        method_path = os.path.join(self.methods_dir, name)
+        method_path = os.path.join(self.methods_dir, self.name)
 
         with open(method_path, "w") as f:
             f.write(utf8(response))
 
-    def delete(self, name):
-        method_path = os.path.join(self.methods_dir, name)
-        description_path = os.path.join(self.methods_dir, "%s_doc.md" % name)
+    def save_description(self):
+        description_path = os.path.join(
+            self.methods_dir,
+            "%s_doc.md" % self.name)
+        with open(description_path, "w") as f:
+            f.write(utf8(self.description))
+
+    def delete(self):
+        method_path = os.path.join(self.methods_dir, self.name)
+        description_path = os.path.join(
+            self.methods_dir, "%s_doc.md" % self.name)
 
         self._delete_file(method_path)
         self._delete_file(description_path)
 
-    def load(self, name):
-        self.name = name
+    def load(self):
         self.edit = True
         self.method_response = read_file(
             os.path.join(self.methods_dir, self.name))

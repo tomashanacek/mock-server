@@ -16,4 +16,15 @@ $(function(){
       }
     });
 
+    $('.todo-checkbox').click(function() {
+        var data = {
+            'checked': $(this).is(':checked'),
+            'value': $(this).parent().text(),
+            'protocol': $(this).data('protocol'),
+            'id': $(this).data('id')
+        };
+        $.postJSON('/__manage/todo', data, function(response) {
+            console.log(response);
+        });
+    });
 });

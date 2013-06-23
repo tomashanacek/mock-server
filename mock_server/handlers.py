@@ -444,8 +444,8 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
         method_name = self.get_argument("method_name", "")
 
         method_file = RPCMethod(
-            os.path.join(self.api_dir, RPCHandler.PATH))
-        method_file.load(method_name)
+            os.path.join(self.api_dir, RPCHandler.PATH), method_name)
+        method_file.load()
         method_file.load_description()
 
         category = self.api_data.get_rpc_category(method_name)
@@ -469,9 +469,9 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
 
         # save method
         rpc_file = RPCMethod(
-            os.path.join(self.api_dir, RPCHandler.PATH))
+            os.path.join(self.api_dir, RPCHandler.PATH), method_name)
         rpc_file.description = description
-        rpc_file.save(method_name, method_response)
+        rpc_file.save(method_response)
 
         # add method to category
         self.api_data.save_category(
@@ -560,8 +560,8 @@ class RPCMethodHandler(BaseHandler, FlashMessageMixin):
     @tornado.web.authenticated
     def delete(self, method_name):
         rpc_file = RPCMethod(
-            os.path.join(self.api_dir, RPCHandler.PATH))
-        rpc_file.delete(method_name)
+            os.path.join(self.api_dir, RPCHandler.PATH), method_name)
+        rpc_file.delete()
 
         self.api_data.delete_resource("RPC-%s" % method_name)
 
@@ -649,3 +649,36 @@ class SettingsHandler(BaseHandler, FlashMessageMixin):
                 "success",
                 "Settings has been successfully saved.")
             self.redirect("/__manage")
+
+
+class TodoHandler(BaseHandler):
+
+    @tornado.web.authenticated
+    def post(self):
+        # check xsrf cookie
+        self.check_xsrf_cookie()
+
+        # get data from request body
+        data = tornado.escape.json_decode(self.request.body)
+
+        if data["protocol"] == "rest":
+            method, url_path = data["id"].split("-")
+            method_file = ResourceMethod(self.api_dir, url_path, method)
+        elif data["protocol"] == "rpc":
+            method_file = RPCMethod(
+                os.path.join(self.api_dir, RPCHandler.PATH), data["id"])
+
+        # load description
+        method_file.load_description()
+
+        # set todo
+        value = " %s" % data["value"].strip()
+        todo = "%s%s" % ("[x]" if data["checked"] else "[ ]", value)
+        method_file.description = re.sub(
+            r"\[( |x)\]%s" % value, todo, method_file.description)
+
+        # save description
+        method_file.save_description()
+
+        self.set_header("Content-Type", "application/json")
+        self.write("OK")

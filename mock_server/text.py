@@ -4,7 +4,28 @@ import markdown2
 import re
 
 
-def markdown(content):
+def create_todos(content, protocol, ref_id):
+    content = re.sub(
+        r"\[ \](.*)",
+        r'<label><input type="checkbox" class="todo-checkbox" '
+        r'data-protocol="%s" data-id="%s">\1</label>' %
+        (protocol, ref_id),
+        content)
+
+    content = re.sub(
+        r"\[x\](.*)",
+        r'<label><input type="checkbox" class="todo-checkbox" '
+        r'data-protocol="%s" data-id="%s" checked>\1</label>' %
+        (protocol, ref_id),
+        content)
+
+    return content
+
+
+def markdown(content, protocol="", ref_id=""):
+
+    content = create_todos(content, protocol, ref_id)
+
     param_text = '<dt>%s</dt><dd><div><strong>%s</strong> '\
                  '(<i>%s</i>)</div>'\
                  '<div><strong>Example</strong>: %s</div>'\
