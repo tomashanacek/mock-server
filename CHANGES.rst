@@ -1,12 +1,16 @@
 History
 =======
 
+0.3.2
+----------------
+
+- todo escaping fix
+
 0.3.1
 ----------------
 
 - support for todos in api documentation
 - access log improvements
-
 
 0.3
 ----------------
