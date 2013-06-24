@@ -16,6 +16,8 @@ $(function(){
       }
     });
 
+    // todo checkbox
+    $('.todo-checkbox:checked').parent().addClass('line-through');
     $('.todo-checkbox').click(function() {
         var data = {
             'checked': $(this).is(':checked'),
@@ -23,8 +25,13 @@ $(function(){
             'protocol': $(this).data('protocol'),
             'id': $(this).data('id')
         };
+        var checkbox = this;
         $.postJSON('/__manage/todo', data, function(response) {
-            console.log(response);
+            if ($(checkbox).is(':checked')) {
+                $(checkbox).parent().addClass('line-through');
+            } else {
+                $(checkbox).parent().removeClass('line-through');
+            }
         });
     });
 });

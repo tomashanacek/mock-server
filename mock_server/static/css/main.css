@@ -221,3 +221,7 @@ body.create-resource { background-color: #f5f5f5; }
 .access-logs .request-container pre {
   margin-top: 3px;
 }
+
+.line-through {
+  text-decoration: line-through;
+}

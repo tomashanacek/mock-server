@@ -18,7 +18,7 @@
           <div class="request-container">
               <strong>Request headers</strong>
               <pre>{% for key, value in line["headers"].iteritems() %}{% if key not in ("X-Real-IP", "X-Scheme", "X-Subdomain", "X-Real-Ip", "Connection") %}
-                {{key}} {{value}}{% end %}{% end %}
+                {{key}}: {{value}}{% end %}{% end %}
               </pre>
               {% if line["body"] %}
               <strong>Request body</strong>
