@@ -13,7 +13,7 @@ Build status at `Travis CI <http://travis-ci.org/>`_: |travis|
 DEMO
 ====
 
-http://mockapi.org/__manage
+http://demo.mockapi.org/__manage
 
 Installation
 ============
