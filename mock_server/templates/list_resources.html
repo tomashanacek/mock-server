@@ -32,12 +32,7 @@
         <h1>List resources</h1>
     </div>
 
-    {% if flash_messages %}{% for type, message in flash_messages %}
-    <div class="alert alert-{{type}}">
-      <button type="button" class="close" data-dismiss="alert">×</button>
-      {{message}}
-    </div>
-    {% end %}{% end %}
+    {% include flash.html %}
 
     {% if some_method %}
 

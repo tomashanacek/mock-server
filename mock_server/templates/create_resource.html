@@ -9,8 +9,18 @@ class="create-resource"
 {% end %}
 
 {% block body %}
+
 <div class="span12">
     <div class="mb20" id="api-selection">
+
+        {% if flash_messages %}{% for type, message in flash_messages %}
+        <div class="alert alert-{{type}}">
+          <button type="button" class="close" data-dismiss="alert">×</button>
+          {% raw message %}
+        </div>
+        {% end %}{% end %}
+
+
         <label class="radio inline">
           <input type="radio" class="protocol" name="protocol" value="rest"{% if protocol == "rest" %} checked{% end %}> REST
         </label>

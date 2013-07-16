@@ -387,7 +387,7 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
 
     @tornado.web.authenticated
-    def get(self):
+    def get(self, flash_messages=None):
         url_path = self.get_argument("url_path", "")
         method = self.get_argument("method", None)
 
@@ -405,7 +405,8 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
             "create_resource.html",
             protocol="rest", category=category, method_file=method_file,
             SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
-            jsonrpc=jsonrpc_available)
+            jsonrpc=jsonrpc_available,
+            flash_messages=flash_messages)
 
     @tornado.web.authenticated
     def post(self):
@@ -578,7 +579,6 @@ class LoginHandler(BaseHandler, FlashMessageMixin):
                     flash_messages=self.get_flash_messages(
                         ("success", "error")))
 
-    @tornado.web.asynchronous
     @gen.coroutine
     def post(self):
         self.check_xsrf_cookie()
@@ -607,10 +607,11 @@ class SettingsHandler(BaseHandler, FlashMessageMixin):
 
     @tornado.web.authenticated
     def get(self):
-        self.render("settings.html")
+        self.render("settings.html",
+                    flash_messages=self.get_flash_messages(
+                        ("success", "error")))
 
     @tornado.web.authenticated
-    @tornado.web.asynchronous
     @gen.coroutine
     def post(self):
         self.check_xsrf_cookie()
@@ -648,7 +649,7 @@ class SettingsHandler(BaseHandler, FlashMessageMixin):
             self.set_flash_message(
                 "success",
                 "Settings has been successfully saved.")
-            self.redirect("/__manage")
+            self.redirect("/__manage/settings")
 
 
 class TodoHandler(BaseHandler):

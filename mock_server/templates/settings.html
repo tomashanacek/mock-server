@@ -13,6 +13,8 @@ class="create-resource"
 
     <form class="form-horizontal" id="settings-form" method="post" action="/__manage/settings">
 
+        {% include flash.html %}
+
         {% module xsrf_form_html() %}
 
         <fieldset>

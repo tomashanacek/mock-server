@@ -40,6 +40,12 @@ class ApiDataModelBase:
 
 class ApiSettings(ApiSettingsBase):
 
+    def __init__(self, settings, request):
+        super(ApiSettings, self).__init__(settings, request)
+
+        if not os.path.exists(self.api_dir):
+            os.makedirs(self.api_dir)
+
     @property
     def api_dir(self):
         return self._settings["dir"]
