@@ -9,7 +9,7 @@ It can mock GET, POST, PUT, PATCH, DELETE and some more rarely used HTTP methods
 DEMO
 ====
 
-http://mockapi.org/__manage
+http://demo.mockapi.org/__manage
 
 Installation
 ============
@@ -39,10 +39,10 @@ Overview
 
 Mocked GET /user/tom::
 
-    $ curl -v -X GET http://mockapi.org/user/tom
+    $ curl -v -X GET http://demo.mockapi.org/user/tom
 
     > GET /user/tom HTTP/1.1
-    > Host: mockapi.org
+    > Host: demo.mockapi.org
     > Accept: */*
     >
     < HTTP/1.1 200 OK
