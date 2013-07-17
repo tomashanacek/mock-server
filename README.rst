@@ -43,10 +43,10 @@ Overview
 
 Mocked GET /user/tom::
 
-    $ curl -v -X GET http://mockapi.org/user/tom
+    $ curl -v -X GET http://demo.mockapi.org/user/tom
 
     > GET /user/tom HTTP/1.1
-    > Host: mockapi.org
+    > Host: demo.mockapi.org
     > Accept: */*
     >
     < HTTP/1.1 200 OK
