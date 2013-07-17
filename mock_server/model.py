@@ -13,7 +13,7 @@ except ImportError:
 from string import ascii_letters, digits
 from random import choice
 from tornado.escape import utf8
-from util import read_file
+from util import read_file, ExtendedJSONEncoder
 from data import SUPPORTED_METHODS
 
 
@@ -376,4 +376,4 @@ def load_resources_log(log_name):
 
 def add_to_resources_log(log_name, data):
     with open(log_name, "a") as f:
-        f.write("%s\n" % json.dumps(data))
+        f.write("%s\n" % json.dumps(data, cls=ExtendedJSONEncoder))

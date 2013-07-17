@@ -24,6 +24,20 @@
               <strong>Request body</strong>
               <pre>{{line["body"]}}</pre>
               {% end %}
+
+              {% if "response" in line %}
+
+              <strong>Response headers</strong>
+              <pre>{% for key, value in line["response"]["headers"] %}
+                {{key}}: {{value}}{% end %}
+              </pre>
+
+              {% if line["response"]["body"] %}
+              <strong>Response body</strong>
+              <pre>{{line["response"]["body"]}}</pre>
+              {% end %}
+
+              {% end %}
           </div>
         </div>
         {% end %}

@@ -49,17 +49,13 @@ class BaseHandler(tornado.web.RequestHandler):
         self.api_dir = api_settings.api_dir
         self.api_data = api_settings.api_data
 
-    def set_content_type(self, content_type, charset="utf-8"):
-        self.set_header("Content-Type",
-                        "%s; charset=%s" % (content_type, charset))
-
     def set_headers(self, headers):
         if not headers:
             return
         for name, value in headers:
             self.set_header(name, value)
 
-    def log_request(self):
+    def log_request(self, response=None):
         data = {
             "method": self.request.method,
             "uri": self.request.uri,
@@ -69,10 +65,11 @@ class BaseHandler(tornado.web.RequestHandler):
             "request_time": 1000.0 * self.request.request_time(),
             "headers": self.request.headers,
             "body": unicode(self.request.body),
-            "arguments": self.request.arguments,
-            "cookies": self.request.cookies,
             "time": datetime.datetime.now().isoformat()
         }
+
+        if response is not None:
+            data["response"] = response
 
         model.add_to_resources_log(self.log_request_name, data)
 
@@ -173,10 +170,6 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
         }, self._upstream_server_callback)
 
     def _resolve_request(self, url_path, format):
-        # log request
-        self.log_request()
-        self.set_header("Access-Control-Allow-Origin", "*")
-
         # get request data
         self.format = self._get_format(format)
         method = self.request.method
@@ -199,9 +192,22 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
             if self.api_data.upstream_server:
                 return self._handle_request_on_upstream()
 
+        # set content type
+        already_content_type = [
+            item[0] for item in response.headers
+            if item[0] == 'Content-Type']
+        if not already_content_type:
+            content_type = SUPPORTED_FORMATS[self.format][0]
+            response.headers.append(
+                ("Content-Type", "%s; charset=utf-8" % content_type))
+        response.headers.append(
+            ("Access-Control-Allow-Origin", "*"))
+
+        # log request
+        self.log_request(response)
+
         # response
         self.set_status(response.status_code)
-        self.set_content_type(SUPPORTED_FORMATS[self.format][0])
         self.set_headers(response.headers)
 
         self.write(response.content)

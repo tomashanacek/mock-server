@@ -3,6 +3,8 @@
 import os
 import logging
 import string
+import json
+import api
 from random import choice
 
 
@@ -21,3 +23,14 @@ def generate_password(length=8):
     chars = string.letters + string.digits
 
     return ''.join(choice(chars) for _ in xrange(length))
+
+class ExtendedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, api.Response):
+            return {
+                "body": obj.content,
+                "headers": obj.headers,
+                "status_code": obj.status_code
+            }
+        return json.JSONEncoder.default(self, obj)
+
