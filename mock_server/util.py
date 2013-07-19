@@ -5,6 +5,8 @@ import logging
 import string
 import json
 import api
+import unicodedata
+import re
 from random import choice
 
 
@@ -24,6 +26,7 @@ def generate_password(length=8):
 
     return ''.join(choice(chars) for _ in xrange(length))
 
+
 class ExtendedJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, api.Response):
@@ -34,3 +37,14 @@ class ExtendedJSONEncoder(json.JSONEncoder):
             }
         return json.JSONEncoder.default(self, obj)
 
+
+def slugify(value, delimiter="-"):
+    slug = unicodedata.normalize("NFKD", value).encode("ascii", "ignore")
+    slug = re.sub(r"[^\w]+", " ", slug)
+    return delimiter.join(slug.lower().strip().split())
+
+
+def slugify_and_camel(value):
+    slug = unicodedata.normalize("NFKD", value).encode("ascii", "ignore")
+    slug = re.sub(r"[^\w]+", " ", slug)
+    return "".join([item.capitalize() for item in slug.strip().split()])

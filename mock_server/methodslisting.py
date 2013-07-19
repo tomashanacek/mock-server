@@ -6,7 +6,7 @@ import json
 import xmlrpclib
 
 from text import markdown
-from util import read_file
+from util import read_file, slugify
 from model import get_url_path
 
 
@@ -102,11 +102,8 @@ class UrlPath(object):
 
     def __init__(self, path):
         self.path = path
-        self.id = self.create_id_from_url_path(path)
+        self.id = slugify(self.path)
         self.resources = {}
-
-    def create_id_from_url_path(self, url_path):
-        return url_path.replace("/", "__").replace("{", "__").replace("}", "")
 
 
 class Resource(object):
@@ -120,6 +117,7 @@ class Resource(object):
         self.files = []
         self.upstream_server = False
         self._description = ""
+        self.plain_description = ""
 
     @property
     def description(self):
@@ -127,6 +125,7 @@ class Resource(object):
 
     @description.setter
     def description(self, value):
+        self.plain_description = value
         self._description = markdown(value, protocol="rest", ref_id=self.id)
 
 

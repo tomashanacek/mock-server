@@ -28,7 +28,7 @@ def get_url_path(file_path):
     for path in file_path.split("/"):
         url_path.append(re.sub(r"__(.*)", r"{\1}", path))
 
-    return "/".join(url_path)
+    return u"/".join(url_path)
 
 
 def get_file_path(url_path):
