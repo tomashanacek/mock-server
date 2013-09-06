@@ -85,7 +85,7 @@
           <div id="{{resource.method}}{{path.id}}{{file.status_code}}{{i}}" class="{% if resource.description %}ppp {% end %}tab-pane{% if i == 0 %} active{% end %}">
           <pre class="prettyprint linenums">{{file.data}}</pre>
           <pre class="prettyprint">
-          curl -v -X {{resource.method}} http://{{request.host}}/{{resource.url_path}}.{{file.format}}{% if file.status_code != "200" %}?__statusCode={{file.status_code}}{% end %}
+          curl {% if request.protocol == 'https' %}-k {% end %}-v -X {{resource.method}} {{request.protocol}}://{{request.host}}/{{resource.url_path}}{% if file.status_code != "200" %}?__statusCode={{file.status_code}}{% end %}
           </pre>
           </div>
           {% end %}
