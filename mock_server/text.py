@@ -60,4 +60,4 @@ def markdown(content, protocol="", ref_id=""):
         new_content.append(
             param_text % (param_data + ("\n".join(description), )))
 
-    return markdown2.markdown("\n".join(new_content))
+    return markdown2.markdown("\n".join(new_content), extras=["wiki-tables"])
