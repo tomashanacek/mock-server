@@ -120,7 +120,7 @@ class="create-resource"
 <script type="text/javascript">
 
 {% if protocol == "rest" %}
-var manager = new CreateRestMethodManager({{SUPPORTED_FORMATS}});
+var manager = new CreateRestMethodManager({% raw SUPPORTED_FORMATS %});
 {% for i, response in enumerate(method_file.responses) %}
 var response = manager.addResponse();
 response.setDefaults({% raw json_encode(response) %});

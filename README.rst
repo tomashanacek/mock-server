@@ -8,7 +8,7 @@ It can mock GET, POST, PUT, PATCH, DELETE and some more rarely used HTTP methods
 Build status at `Travis CI <http://travis-ci.org/>`_: |travis|
 
 .. |travis| image:: https://travis-ci.org/tomashanacek/mock-server.png?branch=master
-
+    :target: https://travis-ci.org/tomashanacek/mock-server
 
 DEMO
 ====

@@ -1,6 +1,11 @@
 History
 =======
 
+0.3.3
+----------------
+
+- create resource quotation character fix
+
 0.3.2
 ----------------
 
