@@ -1,6 +1,11 @@
 History
 =======
 
+0.3.4
+----------------
+
+- if number_of_methods >= MAX_NUMBER_OF_METHODS, it will not display data
+
 0.3.3
 ----------------
 
