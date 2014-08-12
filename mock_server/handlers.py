@@ -447,7 +447,7 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
 class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
 
     @tornado.web.authenticated
-    def get(self):
+    def get(self, flash_messages=None):
         method_name = self.get_argument("method_name", "")
 
         method_file = RPCMethod(
@@ -461,7 +461,8 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
             "create_resource.html",
             protocol="rpc", category=category, method_file=method_file,
             SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
-            jsonrpc=jsonrpc_available)
+            jsonrpc=jsonrpc_available,
+            flash_messages=flash_messages)
 
     @tornado.web.authenticated
     def post(self):
