@@ -1,6 +1,11 @@
 History
 =======
 
+0.3.5
+----------------
+
+- added num_processes command line option for possibility to start multiple worker processes
+
 0.3.4
 ----------------
 
