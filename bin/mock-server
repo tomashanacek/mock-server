@@ -3,7 +3,8 @@
 
 import os
 
-import tornado.ioloop
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 import tornado.options
 from tornado.options import options, define
 
@@ -13,6 +14,7 @@ define("dir", help="dir with api definitions")
 define("debug", help="", default=False, type=bool)
 define("application_data", help="Application data file",
        default="application.json")
+define("num_processes", help="Number of child processes", default=1, type=int)
 
 
 def command_line_options():
@@ -51,8 +53,11 @@ def main():
     app = Application(options.port, options.address,
                       options.dir, options.debug, options.application_data)
     print("Serving on %s:%s.." % (options.address, options.port))
-    app.listen(options.port, options.address)
-    tornado.ioloop.IOLoop.instance().start()
+
+    server = HTTPServer(app)
+    server.bind(options.port, options.address)
+    server.start(options.num_processes)
+    IOLoop.instance().start()
 
 
 if __name__ == "__main__":
