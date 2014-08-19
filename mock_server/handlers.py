@@ -207,7 +207,11 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
         self.log_request(response)
 
         # response
-        self.set_status(response.status_code)
+        try:
+            self.set_status(response.status_code)
+        except ValueError:
+            self._reason = 'Custom status code'
+
         self.set_headers(response.headers)
 
         self.write(response.content)
