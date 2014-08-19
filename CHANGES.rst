@@ -1,6 +1,11 @@
 History
 =======
 
+0.3.6
+----------------
+
+- support for non-standard status codes
+
 0.3.5
 ----------------
 
