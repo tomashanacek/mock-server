@@ -1,6 +1,11 @@
 History
 =======
 
+0.3.7
+----------------
+
+- support for custom response provider
+
 0.3.6
 ----------------
 
