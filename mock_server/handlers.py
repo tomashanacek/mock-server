@@ -79,7 +79,7 @@ class BaseHandler(tornado.web.RequestHandler):
             self.api_dir, "access-%s.log" %
             datetime.datetime.now().strftime("%Y-%m-%d"))
 
-    def _upstream_server_callback(self, response):
+    def _write_response(self, response):
         self.set_headers(response.headers)
         self.write(response.content)
         self.set_status(response.status_code)
@@ -167,9 +167,15 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
             "headers": self.request.headers,
             "status_code": self.status_code,
             "format": self.format
-        }, self._upstream_server_callback)
+        }, self._write_response)
 
     def _resolve_request(self, url_path, format):
+        # custom provider
+        if self.application.custom_provider is not None:
+            response = self.application.custom_provider(self.request)
+            if response is not None:
+                return self._write_response(response)
+
         # get request data
         self.format = self._get_format(format)
         method = self.request.method
@@ -242,7 +248,7 @@ class RPCHandler(BaseHandler):
         self.log_request()
         self.set_header("Access-Control-Allow-Origin", "*")
 
-        if not "Content-Length" in self.request.headers and \
+        if "Content-Length" not in self.request.headers and \
                 self.request.headers.get(
                     "Transfer-Encoding", None) == "chunked":
             self.chunks = ""
@@ -302,8 +308,9 @@ class RPCHandler(BaseHandler):
         provider = self.rpclib.UpstreamServerProvider(
             self.api_data.upstream_server)
 
-        if isinstance(provider, fastrpcapi.UpstreamServerProvider):
-            provider(request_data, self._upstream_server_callback)
+        if fastrpc_available and \
+                isinstance(provider, fastrpcapi.UpstreamServerProvider):
+            provider(request_data, self._write_response)
         else:
             headers = self.request.headers
             headers["Accept"] = self.content_type
@@ -313,9 +320,15 @@ class RPCHandler(BaseHandler):
                 "method": self.request.method,
                 "body": request_data,
                 "headers": headers
-            }, self._upstream_server_callback)
+            }, self._write_response)
 
     def _process(self, request_data):
+        # custom provider
+        if self.application.custom_provider is not None:
+            response = self.application.custom_provider(self.request)
+            if response is not None:
+                return self._write_response(response)
+
         method_name = self.rpclib.FilesMockProvider.get_method_name(
             request_data)
         self.method_name = method_name

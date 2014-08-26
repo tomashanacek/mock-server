@@ -4,16 +4,26 @@ import os
 import tornado.web
 import handlers
 import api_settings
+import imp
 
 from concurrent import futures
 from data import SUPPORTED_FORMATS
 
 
 class Application(tornado.web.Application):
-    def __init__(self, port, address, api_dir, debug, api_data_filename):
+    def __init__(self, port, address, api_dir, debug,
+                 api_data_filename, custom_provider=None):
 
         self.pool = futures.ThreadPoolExecutor(2)
         self.api_settings_class = api_settings.ApiSettings
+        self.custom_provider = None
+
+        if custom_provider is not None:
+            provider_path = os.path.abspath(custom_provider)
+            print(provider_path)
+            module = imp.load_source('custom_provider', provider_path)
+            if hasattr(module, 'provider'):
+                self.custom_provider = module.provider
 
         supported_formats = "|".join(
             map(lambda x: ".%s" % x, SUPPORTED_FORMATS.keys()))

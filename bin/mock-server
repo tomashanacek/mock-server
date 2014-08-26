@@ -15,6 +15,7 @@ define("debug", help="", default=False, type=bool)
 define("application_data", help="Application data file",
        default="application.json")
 define("num_processes", help="Number of child processes", default=1, type=int)
+define("custom_provider", help="Custom response provider")
 
 
 def command_line_options():
@@ -51,7 +52,8 @@ def main():
         return
 
     app = Application(options.port, options.address,
-                      options.dir, options.debug, options.application_data)
+                      options.dir, options.debug, options.application_data,
+                      options.custom_provider)
     print("Serving on %s:%s.." % (options.address, options.port))
 
     server = HTTPServer(app)

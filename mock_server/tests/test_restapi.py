@@ -21,9 +21,11 @@ class TestRestApi(tornado.testing.AsyncHTTPTestCase):
         self._upstream_server.terminate()
 
     def get_app(self):
-        return Application(7777, "localhost",
-                           os.path.join(os.path.dirname(__file__), "api/"),
-                           False, "application.json")
+        dirname = os.path.dirname(__file__)
+
+        return Application(
+            7777, "localhost", os.path.join(dirname, "api/"),
+            False, "application.json", os.path.join(dirname, "provider.py"))
 
     def get_new_ioloop(self):
         return tornado.ioloop.IOLoop.instance()
@@ -65,3 +67,14 @@ class TestRestApi(tornado.testing.AsyncHTTPTestCase):
 
         self.assertEqual(response.code, 200)
         self.assertEqual(response.body, "Hello from upstream server")
+
+    def test_custom_provider(self):
+        response = self.fetch("/abc")
+
+        self.assertEqual(response.code, 200)
+        self.assertEqual(
+            response.body,
+            '{"surname": "Hanacek", "name": "Tomas"}')
+        self.assertEqual(
+            response.headers["Content-Type"],
+            "application/json; charset=utf-8")
