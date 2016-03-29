@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import os
 
 from tornado.httpserver import HTTPServer
@@ -45,7 +44,7 @@ def main():
 
     try:
         from mock_server.application import Application
-    except ImportError, e:
+    except ImportError as e:
         if options.debug:
             raise
         print("%s\nTry run with --debug" % str(e))
