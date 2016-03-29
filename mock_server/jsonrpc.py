@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import jsonrpclib
-import rpc
+from . import rpc
 
 
 class FilesMockProvider(rpc.FilesMockProvider):
@@ -31,14 +31,14 @@ class UpstreamServerProvider(rpc.UpstreamServerProvider):
 
 if __name__ == "__main__":
 
-    import api
+    from . import api
 
     provider = FilesMockProvider("/Users/tomashanacek/Downloads/api")
 
-    print provider(api.Request(body='{"method": "user.list", "id": 1}'))
-    print provider.error
+    print(provider(api.Request(body='{"method": "user.list", "id": 1}')))
+    print(provider.error)
 
-    print provider(
+    print(provider(
         method_name=FilesMockProvider.get_method_name(
-            '{"method": "user.get", "id": 1}'))
-    print provider.error
+            '{"method": "user.get", "id": 1}')))
+    print(provider.error)

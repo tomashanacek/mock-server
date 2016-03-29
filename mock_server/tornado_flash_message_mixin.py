@@ -5,7 +5,7 @@ import tornado.escape
 
 class FlashMessageMixin(object):
     def set_flash_message(self, key, message):
-        if not isinstance(message, basestring):
+        if not isinstance(message, str):
             message = tornado.escape.json_encode(message)
 
         self.set_secure_cookie("flash_msg_%s" % key, message)

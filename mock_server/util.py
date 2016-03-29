@@ -4,7 +4,7 @@ import os
 import logging
 import string
 import json
-import api
+from . import api
 import unicodedata
 import re
 from random import choice
@@ -24,7 +24,7 @@ def read_file(filename):
 def generate_password(length=8):
     chars = string.letters + string.digits
 
-    return ''.join(choice(chars) for _ in xrange(length))
+    return ''.join(choice(chars) for _ in range(length))
 
 
 class ExtendedJSONEncoder(json.JSONEncoder):

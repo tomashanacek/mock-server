@@ -2,8 +2,8 @@
 
 import os
 import json
-import util
-import api
+from . import util
+from . import api
 import tornado.httpclient
 
 from abc import abstractmethod
@@ -109,4 +109,4 @@ class UpstreamServerProvider(api.UpstreamServerProvider):
 
     def _on_response(self, response):
         self._request_handler_callback(
-            api.Response(response.body, response.headers.items()))
+            api.Response(response.body, list(response.headers.items())))

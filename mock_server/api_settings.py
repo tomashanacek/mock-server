@@ -4,13 +4,11 @@ import os
 import json
 
 from abc import ABCMeta, abstractproperty, abstractmethod
-from util import read_file
-from model import ApiData
+from .util import read_file
+from .model import ApiData
 
 
-class ApiSettingsBase:
-
-    __metaclass__ = ABCMeta
+class ApiSettingsBase(metaclass=ABCMeta):
 
     def __init__(self, settings, request):
         self._settings = settings
@@ -25,9 +23,7 @@ class ApiSettingsBase:
         pass
 
 
-class ApiDataModelBase:
-
-    __metaclass__ = ABCMeta
+class ApiDataModelBase(metaclass=ABCMeta):
 
     @abstractmethod
     def load(self):

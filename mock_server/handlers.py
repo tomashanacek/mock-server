@@ -8,27 +8,27 @@ import tornado.web
 
 from crypt import crypt
 from tornado import gen
-from data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
-from data import SUPPORTED_METHODS
-from tornado_flash_message_mixin import FlashMessageMixin
-from tornado_http_auth_basic_mixin import HttpAuthBasicMixin
-from model import ResourceMethod, RPCMethod, gencryptsalt
+from .data import SUPPORTED_FORMATS, SUPPORTED_MIMES, DEFAULT_FORMAT
+from .data import SUPPORTED_METHODS
+from .tornado_flash_message_mixin import FlashMessageMixin
+from .tornado_http_auth_basic_mixin import HttpAuthBasicMixin
+from .model import ResourceMethod, RPCMethod, gencryptsalt
 
-from methodslisting import ResourcesLoader, RPCMethodsLoader
-from validators import validate_url
+from .methodslisting import ResourcesLoader, RPCMethodsLoader
+from .validators import validate_url
 
-import model
-import rest
-import xmlrpc
+from . import model
+from . import rest
+from . import xmlrpc
 
 try:
-    import jsonrpc
+    from . import jsonrpc
     jsonrpc_available = True
 except ImportError:
     jsonrpc_available = False
 
 try:
-    import fastrpcapi
+    from . import fastrpcapi
     fastrpc_available = True
 except ImportError:
     fastrpc_available = False
@@ -64,7 +64,7 @@ class BaseHandler(tornado.web.RequestHandler):
             "remote_ip": self.request.remote_ip,
             "request_time": 1000.0 * self.request.request_time(),
             "headers": self.request.headers,
-            "body": unicode(self.request.body),
+            "body": str(self.request.body),
             "time": datetime.datetime.now().isoformat()
         }
 
@@ -379,7 +379,7 @@ class ListResourcesHandler(BaseHandler, FlashMessageMixin):
 
         # add resources to category
         for path in paths:
-            for resource in path.resources.itervalues():
+            for resource in path.resources.values():
                 if resource.id in methods_with_category:
                     category = methods_with_category[resource.id]["category"]
                 else:
@@ -427,7 +427,7 @@ class CreateResourceMethodHandler(BaseHandler, FlashMessageMixin):
         self.render(
             "create_resource.html",
             protocol="rest", category=category, method_file=method_file,
-            SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
+            SUPPORTED_FORMATS=list(SUPPORTED_FORMATS.keys()),
             jsonrpc=jsonrpc_available,
             flash_messages=flash_messages)
 
@@ -477,7 +477,7 @@ class CreateRPCMethodHandler(BaseHandler, FlashMessageMixin):
         self.render(
             "create_resource.html",
             protocol="rpc", category=category, method_file=method_file,
-            SUPPORTED_FORMATS=SUPPORTED_FORMATS.keys(),
+            SUPPORTED_FORMATS=list(SUPPORTED_FORMATS.keys()),
             jsonrpc=jsonrpc_available,
             flash_messages=flash_messages)
 

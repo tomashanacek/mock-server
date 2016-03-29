@@ -2,12 +2,12 @@
 
 import os
 import tornado.web
-import handlers
-import api_settings
+from . import handlers
+from . import api_settings
 import imp
 
 from concurrent import futures
-from data import SUPPORTED_FORMATS
+from .data import SUPPORTED_FORMATS
 
 
 class Application(tornado.web.Application):
@@ -26,7 +26,7 @@ class Application(tornado.web.Application):
                 self.custom_provider = module.provider
 
         supported_formats = "|".join(
-            map(lambda x: ".%s" % x, SUPPORTED_FORMATS.keys()))
+            [".%s" % x for x in list(SUPPORTED_FORMATS.keys())])
         handlers_list = [
             (r"/__manage/resource/(.*)", handlers.ResourceMethodHandler),
             (r"/__manage/rpc/(.*)", handlers.RPCMethodHandler),

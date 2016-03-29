@@ -3,9 +3,7 @@
 from abc import ABCMeta, abstractmethod
 
 
-class FilesMockProvider:
-
-    __metaclass__ = ABCMeta
+class FilesMockProvider(metaclass=ABCMeta):
 
     def __init__(self, api_dir):
         self._api_dir = api_dir
@@ -40,9 +38,7 @@ class Response(object):
                (self.content, self.headers, self.status_code)
 
 
-class UpstreamServerProvider:
-
-    __metaclass__ = ABCMeta
+class UpstreamServerProvider(metaclass=ABCMeta):
 
     def __init__(self, upstream_server):
         self.upstream_server = upstream_server

@@ -3,11 +3,11 @@
 import os
 import re
 import json
-import xmlrpclib
+import xmlrpc.client
 
-from text import markdown
-from util import read_file, slugify
-from model import get_url_path
+from .text import markdown
+from .util import read_file, slugify
+from .model import get_url_path
 
 
 class MethodsLoader(object):
@@ -213,7 +213,7 @@ class XMLRPCMethod(RPCMethod):
     CONTENT_TYPE = "text/xml"
 
     def __init__(self, method, data):
-        data = xmlrpclib.dumps((data, ), methodresponse=True)
+        data = xmlrpc.client.dumps((data, ), methodresponse=True)
         method_call = "\"<?xml version='1.0'?><methodCall>"\
                       "<methodName>%s</methodName>"\
                       "<params></params></methodCall>\"" % method
