@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-
 import os
 import re
 import json
-import xmlrpc.client
+try:
+    import xmlrpclib
+except ImportError as e:
+    import xmlrpc.client as xmlrpclib
 
 from .text import markdown
 from .util import read_file, slugify
@@ -213,7 +215,7 @@ class XMLRPCMethod(RPCMethod):
     CONTENT_TYPE = "text/xml"
 
     def __init__(self, method, data):
-        data = xmlrpc.client.dumps((data, ), methodresponse=True)
+        data = xmlrpclib.dumps((data, ), methodresponse=True)
         method_call = "\"<?xml version='1.0'?><methodCall>"\
                       "<methodName>%s</methodName>"\
                       "<params></params></methodCall>\"" % method

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-
 import os
 import json
+import six
 
 from abc import ABCMeta, abstractproperty, abstractmethod
 from .util import read_file
 from .model import ApiData
 
 
-class ApiSettingsBase(metaclass=ABCMeta):
+class ApiSettingsBase(six.with_metaclass(ABCMeta, object)):
 
     def __init__(self, settings, request):
         self._settings = settings
@@ -23,7 +23,7 @@ class ApiSettingsBase(metaclass=ABCMeta):
         pass
 
 
-class ApiDataModelBase(metaclass=ABCMeta):
+class ApiDataModelBase(six.with_metaclass(ABCMeta, object)):
 
     @abstractmethod
     def load(self):

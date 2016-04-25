@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-
-import xmlrpc.client
+try:
+    import xmlrpclib
+except ImportError as e:
+    import xmlrpc.client as xmlrpclib
 from . import rpc
 from xml.parsers import expat
 
@@ -12,15 +14,15 @@ class FilesMockProvider(rpc.FilesMockProvider):
     @staticmethod
     def get_method_name(request_body):
         try:
-            return xmlrpc.client.loads(request_body)[1]
+            return xmlrpclib.loads(request_body)[1]
         except expat.ExpatError:
             return ""
 
     def _fault(self, error):
-        return xmlrpc.client.Fault(*error)
+        return xmlrpclib.Fault(*error)
 
     def _dump(self, data):
-        return xmlrpc.client.dumps((data, ), methodresponse=True)
+        return xmlrpclib.dumps((data, ), methodresponse=True)
 
 
 class UpstreamServerProvider(rpc.UpstreamServerProvider):
