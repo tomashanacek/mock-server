@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from .test_restapi import TestRestApi
-from .test_xmlrpc import TestXMLRPC
+from ..test_restapi import TestRestApi
+from ..test_xmlrpc import TestXMLRPC
 
 
 def suite():
