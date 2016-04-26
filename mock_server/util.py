@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import os
 import logging
 import string
@@ -8,6 +7,7 @@ from . import api
 import unicodedata
 import re
 from random import choice
+from tornado.httputil import HTTPHeaders
 
 
 def read_file(filename):
@@ -35,6 +35,11 @@ class ExtendedJSONEncoder(json.JSONEncoder):
                 "headers": obj.headers,
                 "status_code": obj.status_code
             }
+
+        # Conver to dict if tornado headers instance
+        if isinstance(obj, HTTPHeaders):
+            return dict(obj)
+
         return json.JSONEncoder.default(self, obj)
 
 
