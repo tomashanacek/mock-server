@@ -2,8 +2,8 @@
 
 import os
 import re
-import api
-import util
+from . import api
+from . import util
 import tornado.httpclient
 
 from email.parser import Parser
@@ -64,8 +64,8 @@ class FilesMockProvider(api.FilesMockProvider):
             with open(headers_path) as f:
                 strip = lambda s: s if len(s) == 0 \
                     else s[0] + s[1:].strip()
-                return Parser().parsestr(
-                    "\r\n".join(map(strip, f.readlines()))).items()
+                return list(Parser().parsestr(
+                    "\r\n".join(map(strip, f.readlines()))).items())
         except IOError:
             return headers
 
@@ -165,7 +165,7 @@ class UpstreamServerProvider(api.UpstreamServerProvider):
             status_code = 404
         else:
             data = response.body
-            headers = response.headers.items()
+            headers = list(response.headers.items())
             status_code = response.code
 
         self._request_handler_callback(
@@ -176,8 +176,8 @@ if __name__ == "__main__":
 
     provider = FilesMockProvider("/Users/tomashanacek/Downloads/api")
 
-    print resolve_request(provider, "post", "/ble")
-    print resolve_request(provider, "get", "/user/tomas/family/marek")
+    print(resolve_request(provider, "post", "/ble"))
+    print(resolve_request(provider, "get", "/user/tomas/family/marek"))
 
-    print resolve_request(provider, "get", "/user/dsfsd")
-    print resolve_request(provider, "get", "/dsf")
+    print(resolve_request(provider, "get", "/user/dsfsd"))
+    print(resolve_request(provider, "get", "/dsf"))

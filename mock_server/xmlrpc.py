@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-
-import xmlrpclib
-import rpc
+try:
+    import xmlrpclib
+except ImportError as e:
+    import xmlrpc.client as xmlrpclib
+from . import rpc
 from xml.parsers import expat
 
 
@@ -29,16 +31,16 @@ class UpstreamServerProvider(rpc.UpstreamServerProvider):
 
 if __name__ == "__main__":
 
-    import api
+    from . import api
 
     provider = FilesMockProvider("/Users/tomashanacek/Downloads/api")
 
-    print provider(api.Request(
+    print(provider(api.Request(
         body="<?xml version='1.0'?><methodCall><methodName>user.list"
-             "</methodName><params></params></methodCall>"))
-    print provider.error
+             "</methodName><params></params></methodCall>")))
+    print(provider.error)
 
-    print provider(api.Request(
+    print(provider(api.Request(
         body="<?xml version='1.0'?><methodCall><methodName>user.get"
-             "</methodName><params></params></methodCall>"))
-    print provider.error
+             "</methodName><params></params></methodCall>")))
+    print(provider.error)

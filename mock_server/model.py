@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
-
 import os
 import re
 import json
 import glob
+import functools
 
 try:
     from collections import OrderedDict
 except ImportError:
-    from ordereddict import OrderedDict
+    from .ordereddict import OrderedDict
 
 from string import ascii_letters, digits
 from random import choice
 from tornado.escape import utf8
-from util import read_file, ExtendedJSONEncoder
-from data import SUPPORTED_METHODS
+from .util import read_file, ExtendedJSONEncoder
+from .data import SUPPORTED_METHODS
 
 
 def gencryptsalt():
@@ -28,7 +28,7 @@ def get_url_path(file_path):
     for path in file_path.split("/"):
         url_path.append(re.sub(r"__(.*)", r"{\1}", path))
 
-    return u"/".join(url_path)
+    return "/".join(url_path)
 
 
 def get_file_path(url_path):
@@ -81,7 +81,7 @@ class ApiData(object):
             return
 
         self.categories = set(resource["category"]
-                              for resource in self.resources.itervalues()
+                              for resource in self.resources.values()
                               if "category" in resource)
 
     def save(self):
@@ -116,7 +116,7 @@ class ApiData(object):
         if self.resources:
             categories = {}
             resources = {}
-            for file_url_path, resource in self.resources.iteritems():
+            for file_url_path, resource in self.resources.items():
                 if "category" in resource and resource["category"]:
                     categories[resource["category"]] = []
                     resources[get_url_path(file_url_path)] = resource
@@ -131,8 +131,8 @@ class ApiData(object):
                 return -1
             return cmp(x[0].lower(), y[0].lower())
 
-        return (OrderedDict(sorted(categories.items(),
-                                   cmp=compare_category_name)),
+        return (OrderedDict(sorted(list(categories.items()),
+                                   key=functools.cmp_to_key(compare_category_name))),
                 resources)
 
     def save_category(self, resource, category_name):
@@ -175,7 +175,7 @@ class ApiData(object):
                                for item in url_path.split("/")])
         c = re.compile("%s-%s" % (method, path_regex))
 
-        for resource_name, data in self.resources.items():
+        for resource_name, data in list(self.resources.items()):
             m = c.match(resource_name)
             if m and key in data and m.groups()[0] != "":
                 return data[key]

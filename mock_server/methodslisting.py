@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
-
 import os
 import re
 import json
-import xmlrpclib
+try:
+    import xmlrpclib
+except ImportError as e:
+    import xmlrpc.client as xmlrpclib
 
-from text import markdown
-from util import read_file, slugify
-from model import get_url_path
+from .text import markdown
+from .util import read_file, slugify
+from .model import get_url_path
 
 
 class MethodsLoader(object):

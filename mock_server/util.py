@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-
 import os
 import logging
 import string
 import json
-import api
+from . import api
 import unicodedata
 import re
 from random import choice
+from tornado.httputil import HTTPHeaders
 
 
 def read_file(filename):
@@ -24,7 +24,7 @@ def read_file(filename):
 def generate_password(length=8):
     chars = string.letters + string.digits
 
-    return ''.join(choice(chars) for _ in xrange(length))
+    return ''.join(choice(chars) for _ in range(length))
 
 
 class ExtendedJSONEncoder(json.JSONEncoder):
@@ -35,6 +35,11 @@ class ExtendedJSONEncoder(json.JSONEncoder):
                 "headers": obj.headers,
                 "status_code": obj.status_code
             }
+
+        # Conver to dict if tornado headers instance
+        if isinstance(obj, HTTPHeaders):
+            return dict(obj)
+
         return json.JSONEncoder.default(self, obj)
 
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import fastrpc
-import rpc
-import api
+from . import rpc
+from . import api
 
 
 class FilesMockProvider(rpc.FilesMockProvider):
@@ -13,8 +13,8 @@ class FilesMockProvider(rpc.FilesMockProvider):
     def get_method_name(request_body):
         try:
             return fastrpc.loads(request_body)[1]
-        except RuntimeError, e:
-            print e
+        except RuntimeError as e:
+            print(e)
             return ""
 
     def _fault(self, error):
@@ -47,7 +47,7 @@ class UpstreamServerProvider(api.UpstreamServerProvider):
         f = getattr(self.proxy, request[1])
         try:
             data = (f(*request[0]), )
-        except fastrpc.Fault, e:
+        except fastrpc.Fault as e:
             data = e
 
         request_handler_callback(
