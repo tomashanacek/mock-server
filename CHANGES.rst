@@ -1,6 +1,15 @@
 History
 =======
 
+0.3.8
+----------------
+
+- fix http util when returning HTTPHeaders instance
+- fix Tornado version
+- Python 2.7 and 3.4 compatibility
+
+Many thanks to @eduardosan and @winkidney
+
 0.3.7
 ----------------
 
