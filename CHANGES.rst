@@ -1,6 +1,13 @@
 History
 =======
 
+0.3.9
+----------------
+- fix unicode 500 error
+- fix grammar when API does not exist
+
+Many thanks to @bopo and @krmaxwell
+
 0.3.8
 ----------------
 

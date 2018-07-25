@@ -70,6 +70,10 @@ Features
 - Simple api documentation (markdown).
 - Api authentication (HTTP Basic authentication).
 
+Release new version
+===================
+https://packaging.python.org/tutorials/packaging-projects/
+
 
 Format
 ======
