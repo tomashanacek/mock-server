@@ -136,7 +136,8 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
 
     @tornado.web.asynchronous
     def options(self, path, format=DEFAULT_FORMAT):
-        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        self.set_header("Access-Control-Allow-Credentials", "true")
         self.set_header("Access-Control-Max-Age", 21600)
 
         if "Access-Control-Request-Headers" in self.request.headers:
@@ -207,7 +208,9 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
             response.headers.append(
                 ("Content-Type", "%s; charset=utf-8" % content_type))
         response.headers.append(
-            ("Access-Control-Allow-Origin", "*"))
+            ("Access-Control-Allow-Origin", self.request.headers["Origin"]))
+        response.headers.append(
+            ("Access-Control-Allow-Credentials", "true"))
 
         # log request
         self.log_request(response)
@@ -246,7 +249,8 @@ class RPCHandler(BaseHandler):
     def post(self):
         # log request
         self.log_request()
-        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        self.set_header("Access-Control-Allow-Credentials", "true")
 
         if "Content-Length" not in self.request.headers and \
                 self.request.headers.get(
