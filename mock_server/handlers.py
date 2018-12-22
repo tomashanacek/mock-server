@@ -136,9 +136,14 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
 
     @tornado.web.asynchronous
     def options(self, path, format=DEFAULT_FORMAT):
-        self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
-        self.set_header("Access-Control-Allow-Credentials", "true")
         self.set_header("Access-Control-Max-Age", 21600)
+        self.set_header("Access-Control-Allow-Credentials", "true")
+
+        # some apps need to know the origin
+        if "Origin" in self.request.headers:
+            self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        else:
+            self.set_header("Access-Control-Allow-Origin", "*")
 
         if "Access-Control-Request-Headers" in self.request.headers:
             self.set_header(
@@ -160,6 +165,14 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
     def _handle_request_on_upstream(self):
         provider = rest.UpstreamServerProvider(
             self.api_data.upstream_server)
+
+        self.set_header("Access-Control-Allow-Credentials", "true")
+
+        # some apps need to know the origin
+        if "Origin" in self.request.headers:
+            self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        else:
+            self.set_header("Access-Control-Allow-Origin", "*")
 
         provider({
             "uri": self.request.uri,
@@ -207,10 +220,14 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
             content_type = SUPPORTED_FORMATS[self.format][0]
             response.headers.append(
                 ("Content-Type", "%s; charset=utf-8" % content_type))
-        response.headers.append(
-            ("Access-Control-Allow-Origin", self.request.headers["Origin"]))
-        response.headers.append(
-            ("Access-Control-Allow-Credentials", "true"))
+
+        self.set_header("Access-Control-Allow-Credentials", "true")
+
+        # some apps need to know the origin
+        if "Origin" in self.request.headers:
+            self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        else:
+            self.set_header("Access-Control-Allow-Origin", "*")
 
         # log request
         self.log_request(response)
@@ -249,8 +266,14 @@ class RPCHandler(BaseHandler):
     def post(self):
         # log request
         self.log_request()
-        self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+
         self.set_header("Access-Control-Allow-Credentials", "true")
+
+        # some apps need to know the origin
+        if "Origin" in self.request.headers:
+            self.set_header("Access-Control-Allow-Origin", self.request.headers["Origin"])
+        else:
+            self.set_header("Access-Control-Allow-Origin", "*")
 
         if "Content-Length" not in self.request.headers and \
                 self.request.headers.get(
