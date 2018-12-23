@@ -193,7 +193,7 @@ class MainHandler(BaseHandler, HttpAuthBasicMixin):
         # get request data
         self.format = self._get_format(format)
         method = self.request.method
-        self.status_code = int(self.get_argument("__statusCode", 200))
+        self.status_code = None  # we will calculate this from available files
 
         # upstream server
         upstream_server = self.api_data.get_upstream_server(
