@@ -11,11 +11,23 @@ from email.parser import Parser
 
 class FilesMockProvider(api.FilesMockProvider):
 
-    def __call__(self, request, status_code=200, format="json"):
+    def __call__(self, request, status_code, format="json"):
 
         self._request = request
         self._status_code = status_code
         self._format = format
+
+        # find status code in requested dir
+        if status_code is None:
+            self._status_code = 200
+            url_path = re.sub("/{2,}", "/", self._request.url_path, count=1)
+            regex_file_name_and_path = os.path.join(self._api_dir, url_path, self._get_filename())
+            regex_file_dir = regex_file_name_and_path.rsplit('/', 1)[0]
+            files = [f for f in os.listdir(regex_file_dir) if re.match(request.method + r'_[0-9]+.*\.' + format, f)]
+            if len(files) > 0:
+                f = files[0]
+                status_code = int(f.split('_')[1].split('.')[0])
+                self._status_code = status_code
 
         # prepare response
         response = api.Response()
