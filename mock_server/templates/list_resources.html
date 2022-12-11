@@ -15,7 +15,7 @@
 {% if some_method %}
 <div class="span3 bs-docs-sidebar">
     <ul class="nav nav-list bs-docs-sidenav" id="sidenav">
-      {% for category, paths in categories.iteritems() %}{% if paths %}
+      {% for category, paths in categories.items() %}{% if paths %}
         <li{% if number_of_methods < MAX_NUMBER_OF_METHODS %} class="category"{% end %}><a href="#{{category}}"><i class="icon-chevron-right"></i> {% if category == "__default" %}Not in category{% else %}{{category}}{% end %}</a></li>
         {% if number_of_methods < MAX_NUMBER_OF_METHODS %}
         {% for type, path in paths %}
@@ -40,11 +40,11 @@
 
     {% if some_method %}
 
-    {% for category, paths in categories.iteritems() %}{% if paths %}
+    {% for category, paths in categories.items() %}{% if paths %}
     <h2 id="{{category}}">{% if category == "__default" %}Not in category{% else %}{{category}}{% end %}</h2>
     {% for type, path in paths %}
     {% if type == "rest" %}
-    {% for resource in path.resources.itervalues() %}
+    {% for resource in path.resources.values() %}
     <section id="{{resource.url_path}}">
     <div class="navbar">
       <div class="navbar-inner">
@@ -106,7 +106,7 @@
         <div class="navbar-inner">
           <a class="brand" href="#">RPC/{{path["name"]}}</a>
           <ul class="nav">
-            {% for i, format in enumerate(path["responses"].iterkeys()) %}
+            {% for i, format in enumerate(path["responses"].keys()) %}
             <li {% if i == 0 %}class="active"{% end %}><a class="trigger-{{path["id"]}}{{format}}" href="#{{path["id"]}}{{format}}" data-toggle="tab">{{format}}</a></li>
             {% end %}
           </ul>
