@@ -1,10 +1,14 @@
 # Backport of OrderedDict() class that runs on Python 2.4, 2.5, 2.6, 2.7 and pypy.
 # Passes Python2.7's test suite and incorporates all the latest updates.
 
-try:
-    from _thread import get_ident as _get_ident
-except ImportError:
-    from _dummy_thread import get_ident as _get_ident
+from mock_server import is_before_python3
+
+
+if not is_before_python3:
+    try:
+        from _thread import get_ident as _get_ident
+    except ImportError:
+        from _dummy_thread import get_ident as _get_ident
 
 try:
     from _abcoll import KeysView, ValuesView, ItemsView

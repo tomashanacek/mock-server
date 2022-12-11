@@ -5,11 +5,7 @@ import json
 import glob
 import functools
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from .ordereddict import OrderedDict
-
+from mock_server import OrderedDict
 from string import ascii_letters, digits
 from random import choice
 from tornado.escape import utf8
@@ -46,12 +42,12 @@ class ApiData(object):
 
     def __init__(self, model):
         self._model = model
-        self.data = {}
+        self.data = OrderedDict()
         self._upstream_server = ""
         self.password = ""
         self.http_username = ""
         self.http_password = ""
-        self.resources = {}
+        self.resources = OrderedDict()
         self.categories = set()
 
     @property
@@ -85,7 +81,7 @@ class ApiData(object):
                               if "category" in resource)
 
     def save(self):
-        self.data = {}
+        self.data = OrderedDict()
 
         if self.resources:
             self.data["resources"] = self.resources
@@ -114,14 +110,14 @@ class ApiData(object):
 
     def list_categories(self):
         if self.resources:
-            categories = {}
-            resources = {}
+            categories = OrderedDict()
+            resources = OrderedDict()
             for file_url_path, resource in self.resources.items():
                 if "category" in resource and resource["category"]:
                     categories[resource["category"]] = []
                     resources[get_url_path(file_url_path)] = resource
         else:
-            categories = {}
+            categories = OrderedDict()
             resources = []
 
         categories["__default"] = []
