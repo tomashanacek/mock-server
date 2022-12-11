@@ -10,6 +10,7 @@ except ImportError as e:
 from .text import markdown
 from .util import read_file, slugify
 from .model import get_url_path
+from mock_server import OrderedDict
 
 
 class MethodsLoader(object):
@@ -105,7 +106,7 @@ class UrlPath(object):
     def __init__(self, path):
         self.path = path
         self.id = slugify(self.path)
-        self.resources = {}
+        self.resources = OrderedDict()
 
 
 class Resource(object):
@@ -190,7 +191,7 @@ class RPCMethodsLoader(MethodsLoader):
         except ValueError:
             data = data
 
-        responses = {}
+        responses = OrderedDict()
 
         responses["xmlrpc"] = XMLRPCMethod(method, data)
 
